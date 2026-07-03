@@ -1828,9 +1828,7 @@ TestRegister.addTests([
     //   ZPK_OUT (2-key TDES) : AABBCCDDEEFF00112233445566778899  KCV C4F0A4
     //   encrypted under ZPK_IN  : 7F381DBF9F6906C4
     //   encrypted under ZPK_OUT : 06C0408B869B2CEB
-    // AWS Payment Cryptography comparison (translate_pin_data, TR31_P0_PIN_ENCRYPTION_KEY):
-    //   incoming key ARN: arn:aws:payment-cryptography:us-east-1:030716882260:key/yqictqre4fccxmzn
-    //   outgoing key ARN: arn:aws:payment-cryptography:us-east-1:030716882260:key/czgtcqq5cpspwcgk
+    // AWS Payment Cryptography comparison (translate_pin_data, TR31_P0_PIN_ENCRYPTION_KEY).
     {
         name: "PIN Block Translate Encrypted: same key / same format (round-trip identity)",
         input: "7F381DBF9F6906C4",
