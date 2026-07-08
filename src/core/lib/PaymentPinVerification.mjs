@@ -146,10 +146,14 @@ function generateIbm3624PinOffset(pvkHex, decimalizationTable, pinValidationData
  * @returns {Object}
  */
 function verifyIbm3624Pin(pvkHex, decimalizationTable, pinValidationData, padCharacter, pinOffset, pin) {
-    const normalizedOffset = (pinOffset || "").replace(/\s+/g, "");
+    // HSM wire formats (e.g. Thales payShield DA/DU/CK) carry the offset as a
+    // fixed 12-character field right-padded with 'F'; the IBM 3624 offset
+    // itself is defined only for its significant digits (one per PIN digit),
+    // so trailing 'F' padding is stripped before comparison.
+    const normalizedOffset = (pinOffset || "").replace(/\s+/g, "").toUpperCase().replace(/F+$/, "");
     const normalizedPin = normalizePin(pin);
     if (!/^\d{4,12}$/.test(normalizedOffset) || normalizedOffset.length !== normalizedPin.length) {
-        throw new OperationError("PIN offset must be 4 to 12 digits and match PIN length.");
+        throw new OperationError("PIN offset must be 4 to 12 digits (trailing 'F' fill is ignored) and match PIN length.");
     }
 
     const generated = generateIbm3624PinOffset(
