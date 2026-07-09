@@ -6,26 +6,7 @@
 import Operation from "../Operation.mjs";
 import OperationError from "../errors/OperationError.mjs";
 import CalculatePaymentKCV from "./CalculatePaymentKCV.mjs";
-import { bytesToHex, parseHexBytes } from "../lib/PaymentUtils.mjs";
-
-/**
- * Returns cryptographically random bytes when available.
- *
- * @param {number} length
- * @returns {Uint8Array}
- */
-function randomBytes(length) {
-    const out = new Uint8Array(length);
-    if (globalThis.crypto && globalThis.crypto.getRandomValues) {
-        globalThis.crypto.getRandomValues(out);
-        return out;
-    }
-
-    for (let i = 0; i < out.length; i++) {
-        out[i] = Math.floor(Math.random() * 256);
-    }
-    return out;
-}
+import { bytesToHex, parseHexBytes, secureRandomBytes as randomBytes } from "../lib/PaymentUtils.mjs";
 
 /**
  * Inverts all bytes.

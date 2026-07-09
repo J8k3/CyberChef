@@ -5,24 +5,9 @@
 
 import forge from "node-forge";
 import OperationError from "../errors/OperationError.mjs";
-import { bytesToHex, parseHexBytes, toByteString } from "./PaymentUtils.mjs";
+import { bytesToHex, parseHexBytes, toByteString, xorBytes } from "./PaymentUtils.mjs";
 
 const ISO9797_PADDING_METHODS = ["Method 1", "Method 2"];
-
-/**
- * XORs two byte arrays of equal length.
- *
- * @param {Uint8Array} left
- * @param {Uint8Array} right
- * @returns {Uint8Array}
- */
-function xorBytes(left, right) {
-    const out = new Uint8Array(left.length);
-    for (let i = 0; i < left.length; i++) {
-        out[i] = left[i] ^ right[i];
-    }
-    return out;
-}
 
 /**
  * Pads input according to ISO/IEC 9797-1 padding method 1 or 2.

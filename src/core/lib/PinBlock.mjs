@@ -5,6 +5,7 @@
 
 import OperationError from "../errors/OperationError.mjs";
 import { toHexFast } from "./Hex.mjs";
+import { normalizePan, normalizePin, secureRandomInt } from "./PaymentUtils.mjs";
 
 const PIN_BLOCK_FORMATS = ["ISO Format 0", "ISO Format 1", "ISO Format 3"];
 
@@ -16,15 +17,7 @@ const PIN_BLOCK_FORMATS = ["ISO Format 0", "ISO Format 1", "ISO Format 3"];
  * @returns {number}
  */
 function randomNibble(min, max) {
-    const range = max - min + 1;
-
-    if (globalThis.crypto && globalThis.crypto.getRandomValues) {
-        const buf = new Uint8Array(1);
-        globalThis.crypto.getRandomValues(buf);
-        return min + (buf[0] % range);
-    }
-
-    return min + Math.floor(Math.random() * range);
+    return min + secureRandomInt(max - min + 1);
 }
 
 /**
@@ -60,34 +53,6 @@ function nibblesToBytes(nibbles) {
  */
 function xorNibbles(a, b) {
     return a.map((value, index) => value ^ b[index]);
-}
-
-/**
- * Normalizes and validates a PIN.
- *
- * @param {string} pin
- * @returns {string}
- */
-function normalizePin(pin) {
-    const normalized = (pin || "").replace(/\s+/g, "");
-    if (!/^\d{4,12}$/.test(normalized)) {
-        throw new OperationError("PIN must be 4 to 12 digits.");
-    }
-    return normalized;
-}
-
-/**
- * Normalizes and validates a PAN.
- *
- * @param {string} pan
- * @returns {string}
- */
-function normalizePan(pan) {
-    const normalized = (pan || "").replace(/\s+/g, "");
-    if (!/^\d{12,19}$/.test(normalized)) {
-        throw new OperationError("PAN must be 12 to 19 digits.");
-    }
-    return normalized;
 }
 
 /**

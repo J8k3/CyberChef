@@ -4,36 +4,8 @@
  */
 
 import OperationError from "../errors/OperationError.mjs";
-import { bytesToHex, parseHexBytes } from "./PaymentUtils.mjs";
+import { bytesToHex, normalizePan, normalizePin, parseHexBytes } from "./PaymentUtils.mjs";
 import { encryptTdesEcb } from "./CardValidationInternals.mjs";
-
-/**
- * Normalizes a PAN string.
- *
- * @param {string} pan
- * @returns {string}
- */
-function normalizePan(pan) {
-    const normalized = (pan || "").replace(/\s+/g, "");
-    if (!/^\d{12,19}$/.test(normalized)) {
-        throw new OperationError("PAN must be 12 to 19 digits.");
-    }
-    return normalized;
-}
-
-/**
- * Normalizes a clear PIN string.
- *
- * @param {string} pin
- * @returns {string}
- */
-function normalizePin(pin) {
-    const normalized = (pin || "").replace(/\s+/g, "");
-    if (!/^\d{4,12}$/.test(normalized)) {
-        throw new OperationError("PIN must be 4 to 12 digits.");
-    }
-    return normalized;
-}
 
 /**
  * Converts hexadecimal characters to decimal digits via a decimalization table.

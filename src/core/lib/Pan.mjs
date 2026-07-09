@@ -4,6 +4,7 @@
  */
 
 import OperationError from "../errors/OperationError.mjs";
+import { normalizePan, secureRandomInt } from "./PaymentUtils.mjs";
 
 const PAN_BRANDS = ["Visa", "Mastercard", "American Express", "Discover"];
 const MASTERCARD_SERIES = ["Any", "5-series (51-55)", "2-series (2221-2720)"];
@@ -134,20 +135,6 @@ const PAN_BRAND_RULES = {
 };
 
 /**
- * Normalizes a PAN.
- *
- * @param {string} pan
- * @returns {string}
- */
-function normalizePan(pan) {
-    const normalized = (pan || "").replace(/\s+/g, "");
-    if (!/^\d{12,19}$/.test(normalized)) {
-        throw new OperationError("PAN must be 12 to 19 digits.");
-    }
-    return normalized;
-}
-
-/**
  * Calculates a Luhn check digit for a numeric body.
  *
  * @param {string} body
@@ -257,9 +244,9 @@ function finalizePan(body) {
  * @returns {string}
  */
 function fillerDigits(length) {
-    const buf = new Uint8Array(length);
-    crypto.getRandomValues(buf);
-    return Array.from(buf, b => b % 10).join("");
+    let out = "";
+    for (let i = 0; i < length; i++) out += secureRandomInt(10);
+    return out;
 }
 
 /**
@@ -286,13 +273,13 @@ function generateBrandPan(brand, requestedLength, mastercardSeries = "Any") {
         } else if (mastercardSeries === "2-series (2221-2720)") {
             selectedRule = config.prefixes[1];
         } else {
-            selectedRule = eligibleRules[Math.floor(Math.random() * eligibleRules.length)];
+            selectedRule = eligibleRules[secureRandomInt(eligibleRules.length)];
         }
     } else {
-        selectedRule = eligibleRules[Math.floor(Math.random() * eligibleRules.length)];
+        selectedRule = eligibleRules[secureRandomInt(eligibleRules.length)];
     }
 
-    const prefixValue = selectedRule.start + Math.floor(Math.random() * (selectedRule.end - selectedRule.start + 1));
+    const prefixValue = selectedRule.start + secureRandomInt(selectedRule.end - selectedRule.start + 1);
     const prefix = String(prefixValue);
     const bodyLength = length - 1;
     const body = `${prefix}${fillerDigits(bodyLength - prefix.length)}`.substring(0, bodyLength);

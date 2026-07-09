@@ -4,7 +4,7 @@
  */
 
 import OperationError from "../errors/OperationError.mjs";
-import { bytesToHex, parseHexBytes } from "./PaymentUtils.mjs";
+import { bytesToHex, parseHexBytes, xorBytes } from "./PaymentUtils.mjs";
 import { encryptDesEcb, encryptTdesEcb } from "./CardValidationInternals.mjs";
 
 const CVV_PROFILES = [
@@ -53,22 +53,6 @@ function resolveServiceCode(profile, serviceCode) {
         default:
             return (serviceCode || "").replace(/\s+/g, "");
     }
-}
-
-
-/**
- * XORs two byte arrays.
- *
- * @param {Uint8Array} left
- * @param {Uint8Array} right
- * @returns {Uint8Array}
- */
-function xorBytes(left, right) {
-    const out = new Uint8Array(left.length);
-    for (let i = 0; i < left.length; i++) {
-        out[i] = left[i] ^ right[i];
-    }
-    return out;
 }
 
 
