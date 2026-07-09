@@ -258,10 +258,10 @@ function fillerDigits(length) {
  * @returns {{pan: string, prefixDescription: string}}
  */
 function generateBrandPan(brand, requestedLength, mastercardSeries = "Any") {
-    const config = PAN_BRAND_RULES[brand];
-    if (!config) {
+    if (!Object.prototype.hasOwnProperty.call(PAN_BRAND_RULES, brand)) {
         throw new OperationError("Unsupported payment network.");
     }
+    const config = PAN_BRAND_RULES[brand];
 
     const length = config.lengths.includes(requestedLength) ? requestedLength : config.lengths[0];
     const eligibleRules = config.prefixes.filter(r => r.lengths.includes(length));
@@ -300,10 +300,10 @@ function generateBrandPan(brand, requestedLength, mastercardSeries = "Any") {
  * @returns {Object}
  */
 function generateTestPan(brand, mode, length, mastercardSeries = "Any") {
-    const config = PAN_BRAND_RULES[brand];
-    if (!config) {
+    if (!Object.prototype.hasOwnProperty.call(PAN_BRAND_RULES, brand)) {
         throw new OperationError("Unsupported payment network.");
     }
+    const config = PAN_BRAND_RULES[brand];
 
     if (mode === "Curated sample") {
         const parsed = parsePan(config.curatedPan);

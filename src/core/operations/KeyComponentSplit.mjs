@@ -80,9 +80,13 @@ class KeyComponentSplit extends Operation {
         if (!/^[0-9A-F]+$/.test(keyHex) || keyHex.length % 2 !== 0) {
             throw new OperationError("Input must be a valid even-length hex string.");
         }
+        // Bound the key length: it drives the CSPRNG fill, and a key over the
+        // WebCrypto 65536-byte limit would surface a raw QuotaExceededError.
+        // 256 bytes is well beyond any payment key.
+        if (keyHex.length > 512) throw new OperationError("Input key must be at most 256 bytes.");
 
         const n = Math.round(numComponents);
-        if (n < 2 || n > 8) throw new OperationError("Number of components must be between 2 and 8.");
+        if (!Number.isInteger(n) || n < 2 || n > 8) throw new OperationError("Number of components must be an integer between 2 and 8.");
 
         const keyBytes = hexToBytes(keyHex);
         const len = keyBytes.length;

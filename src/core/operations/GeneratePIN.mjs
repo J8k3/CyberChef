@@ -6,6 +6,7 @@
 import Operation from "../Operation.mjs";
 import OperationError from "../errors/OperationError.mjs";
 import { buildPinBlock } from "../lib/PinBlock.mjs";
+import { secureRandomInt } from "../lib/PaymentUtils.mjs";
 
 const PIN_OUTPUT_MODES = [
     "PIN digits",
@@ -96,30 +97,14 @@ class GeneratePIN extends Operation {
 }
 
 /**
- * Generates a single random decimal digit using rejection sampling.
- * Rejects values >= 250 to ensure uniform distribution across 0–9
- * (250 = 25 × 10, so bytes 0–249 map to exactly 25 values per digit).
- *
- * @returns {number}
- */
-function randomDecimalDigit() {
-    const buf = new Uint8Array(1);
-    let b;
-    do {
-        globalThis.crypto.getRandomValues(buf);
-        b = buf[0];
-    } while (b >= 250);
-    return b % 10;
-}
-
-/**
- * Generates a random PIN of the given length.
+ * Generates a random PIN of the given length using the shared CSPRNG helper
+ * (uniform 0–9 via rejection sampling; throws if no secure RNG is available).
  *
  * @param {number} length
  * @returns {string}
  */
 function generateRandomPin(length) {
-    return Array.from({ length }, () => randomDecimalDigit()).join("");
+    return Array.from({ length }, () => secureRandomInt(10)).join("");
 }
 
 export default GeneratePIN;

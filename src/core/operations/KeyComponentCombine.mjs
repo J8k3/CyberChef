@@ -59,7 +59,10 @@ class KeyComponentCombine extends Operation {
             if (!Array.isArray(parsed.components) || parsed.components.length === 0) {
                 throw new OperationError("JSON input must contain a non-empty 'components' array.");
             }
-            hexComponents = parsed.components;
+            if (!parsed.components.every(c => typeof c === "string")) {
+                throw new OperationError("Every entry in 'components' must be a hex string.");
+            }
+            hexComponents = parsed.components.map(c => c.toUpperCase().replace(/\s+/g, ""));
         } else {
             hexComponents = trimmed.split("\n")
                 .map(l => l.trim().toUpperCase().replace(/\s+/g, ""))

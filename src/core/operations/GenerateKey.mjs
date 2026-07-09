@@ -174,8 +174,9 @@ class GenerateKey extends Operation {
     run(input, args) {
         const [keyType, customLength, computeKcv, outputJson] = args;
 
+        if (!Object.prototype.hasOwnProperty.call(KEY_SPECS, keyType))
+            throw new OperationError("Unknown key / material type.");
         const spec = KEY_SPECS[keyType];
-        if (!spec) throw new OperationError("Unknown key / material type.");
 
         const byteCount = spec.type === "custom" ? Math.max(1, Math.min(256, customLength)) : spec.bytes;
         const material  = randomBytes(byteCount);
