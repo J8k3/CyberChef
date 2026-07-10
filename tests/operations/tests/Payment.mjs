@@ -305,6 +305,19 @@ TestRegister.addTests([
         ]
     },
     {
+        // AES-256 KCV must be the CMAC of the FULL 32-byte key, not a 16-byte
+        // truncation. Known answer cross-checked with an independent AES-256-CMAC.
+        name: "Payment Calculate KCV: AES-256 CMAC zeros (full-key)",
+        input: "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F",
+        expectedOutput: "377822",
+        recipeConfig: [
+            {
+                op: "Payment Calculate KCV",
+                args: ["Hex", "AES-CMAC (Zeros)", 6]
+            }
+        ]
+    },
+    {
         name: "Payment Calculate KCV: AES-ECB zeros",
         input: "00112233445566778899AABBCCDDEEFF",
         expectedOutput: "FDE4FB",
@@ -1459,6 +1472,19 @@ TestRegister.addTests([
             {
                 op: "EMV Verify MAC",
                 args: ["0123456789ABCDEFFEDCBA9876543210", "22CB48394DFD1977", "Method 2", true]
+            }
+        ]
+    },
+    {
+        // A truncated expected MAC (< 4 bytes) must be rejected, not accepted at
+        // a 1-in-256 guess rate. Mirrors the floor on the generic MAC Verify op.
+        name: "EMV Verify MAC: rejects sub-4-byte expected MAC",
+        input: "8424000008999E57FD0F47CACE0007",
+        expectedOutput: "Expected MAC must be at least 4 bytes (8 hex characters).",
+        recipeConfig: [
+            {
+                op: "EMV Verify MAC",
+                args: ["0123456789ABCDEFFEDCBA9876543210", "2A", "Method 2", true]
             }
         ]
     },

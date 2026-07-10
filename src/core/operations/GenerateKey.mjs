@@ -82,7 +82,10 @@ function shiftLeft1(a) {
  * @returns {string}
  */
 function aesCmacKcv(key) {
-    const k = key.slice(0, 16);
+    // Use the full key. forge AES-ECB selects AES-128/192/256 by key length, so
+    // truncating to 16 bytes would compute an AES-128 CMAC of the first half and
+    // produce the wrong KCV for AES-192/256 keys.
+    const k = key;
     const RB = new Uint8Array(16); RB[15] = 0x87;
     const cipher = forge.cipher.createCipher("AES-ECB", toByteStr(k));
 
