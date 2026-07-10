@@ -12,6 +12,9 @@
  */
 
 import OperationError from "../errors/OperationError.mjs";
+import { bytesToHex, parseHexBytes } from "./PaymentUtils.mjs";
+import { encryptTdesEcb } from "./CardValidationInternals.mjs";
+import { generateIso9797Algorithm3Mac } from "./Iso9797.mjs";
 
 const METHOD1 = "Method 1 (Visa/Amex/Discover)";
 const METHOD2 = "Method 2 (Mastercard)";
@@ -134,6 +137,62 @@ function parseMethod2(hex) {
 }
 
 /**
+ * Compute a Method 1 ARPC (EMV 4.3 Book 2 §8.2.1).
+ *
+ *   ARPC = TDES_ECB(SK_AC)[ ARQC XOR (ARC || '00' '00' '00' '00' '00' '00') ]
+ *
+ * The result is the full 8-byte block. SK_AC is the AC session key (TDES).
+ * Verified live against APC verify_auth_request_cryptogram (ArpcMethod1),
+ * 2026-07-08.
+ *
+ * @param {string} preimageHex ARQC(8) || ARC(2), i.e. the Method 1 preimage
+ * @param {string} sessionKeyHex TDES session key (16 or 24 bytes)
+ * @returns {{ arpcHex: string, arqcHex: string, arcHex: string, blockHex: string }}
+ */
+function computeArpcMethod1(preimageHex, sessionKeyHex) {
+    const { fields } = parseMethod1(preimageHex);
+    const arqcHex = fields[0].value;
+    const arcHex = fields[1].value;
+
+    const key = parseHexBytes(sessionKeyHex, "Session key", [16, 24]);
+    const arqc = parseHexBytes(arqcHex, "ARQC");
+    const s = parseHexBytes(`${arcHex}000000000000`, "ARC block"); // ARC || six zero bytes
+    const block = new Uint8Array(8);
+    for (let i = 0; i < 8; i++) block[i] = arqc[i] ^ s[i];
+
+    const arpc = encryptTdesEcb(key, block);
+    return {
+        arqcHex,
+        arcHex,
+        blockHex: bytesToHex(block),
+        arpcHex: bytesToHex(arpc),
+    };
+}
+
+/**
+ * Compute a Method 2 ARPC (EMV 4.3 Book 2 §8.2.2).
+ *
+ *   ARPC = leftmost 4 bytes of MAC_SK_AC( ARQC || CSU || [Proprietary Auth Data] )
+ *
+ * The MAC is the ISO 9797-1 Algorithm 3 retail MAC over the EMV (ISO 9797-1
+ * padding method 2) padded input — matching APC's TDES ARPC. Verified live
+ * against APC verify_auth_request_cryptogram (ArpcMethod2), 2026-07-08.
+ *
+ * @param {string} preimageHex ARQC(8) || CSU(4) || prop(0-8), i.e. the Method 2 preimage
+ * @param {string} sessionKeyHex TDES session key (16 or 24 bytes)
+ * @returns {{ arpcHex: string, fullMacHex: string }}
+ */
+function computeArpcMethod2(preimageHex, sessionKeyHex) {
+    const { fields } = parseMethod2(preimageHex);
+    const preimage = fields.map(f => f.value).join("");
+    const mac = generateIso9797Algorithm3Mac(preimage, sessionKeyHex, "Method 2", 4);
+    return {
+        arpcHex: mac.macHex,
+        fullMacHex: mac.fullMacHex,
+    };
+}
+
+/**
  * Format parsed fields as JSON.
  * @param {object[]} fields
  * @param {string} method
@@ -163,5 +222,6 @@ export {
     METHODS, METHOD1, METHOD2,
     buildMethod1, buildMethod2,
     parseMethod1, parseMethod2,
+    computeArpcMethod1, computeArpcMethod2,
     formatJson, formatAnnotated,
 };

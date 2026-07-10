@@ -8,6 +8,18 @@ import { PIN_BLOCK_FORMATS, buildPinBlock } from "../lib/PinBlock.mjs";
 
 /**
  * Build PIN block operation
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     ISO 9564-1:2017 — §9.3.2 (Format 0), §9.3.3 (Format 1), §9.3.5 (Format 3)
+ * @rule     Format 0: PIN field filled with 0xF, XORed with the PAN field. Format 1: fill is random (or a transaction number). Format 3: fill digits drawn from 0xA–0xF, XORed with the PAN field.
+ * @status   externally-verified
+ * @evidence APC PIN Block Translate Encrypted cross-check 2026-05-19 exercises Format 0 end-to-end
+ *
+ * @spec     ISO 9564-1:2017 — §9.3.2
+ * @rule     PAN field = the 12 rightmost PAN digits excluding the check digit, left-padded with zeros. Note this is NOT the EMV Option A convention (rightmost 16 of PAN||PSN, EMV Book 2 Annex A1.4.1) — conflating the two corrupted PAN decoding in apc-hsm-proxy (issue #19).
+ * @status   externally-verified
+ * @evidence Format 0 deterministic vector cross-checked via APC 2026-05-19
  */
 class BuildPINBlock extends Operation {
 

@@ -8,6 +8,13 @@ import { CVV_PROFILES, verifyCardValidationData } from "../lib/CardValidation.mj
 
 /**
  * Verify card validation data operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     Visa CVV algorithm — as specified in Thales payShield PUGD0537-004 Rev A p.303 (CY) and APC card validation verification
+ * @rule     Recomputes the validation data (see Card Validation Data Generate grounding — product selected by service code) and compares.
+ * @status   externally-verified
+ * @evidence Shares the CVV core with Card Validation Data Generate (apc-crossval 2impl, 2026-07-08); APC verify PASS 2026-05-19
  */
 class VerifyCardValidationData extends Operation {
 

@@ -8,6 +8,13 @@ import { verifyVisaPvv } from "../lib/PaymentPinVerification.mjs";
 
 /**
  * Verify VISA PVV operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     Visa PVV (ABA PVV method) — as specified in Thales payShield PUGD0537-004 Rev A p.273 (DC) and APC VisaPin verification
+ * @rule     Recomputes the PVV (see VISA PVV Generate grounding) and compares to the expected 4-digit value. PVKI is a single digit; payShield CU documents the range 1–6, APC accepts 0–6.
+ * @status   externally-verified
+ * @evidence Shares generateVisaPvv with VISA PVV Generate (apc-crossval 2impl, 2026-07-08); APC verify_pin_data PASS 2026-05-19
  */
 class VerifyVISAPVV extends Operation {
     /**

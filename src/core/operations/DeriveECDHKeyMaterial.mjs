@@ -234,7 +234,12 @@ class DeriveECDHKeyMaterial extends Operation {
             "PUBLIC KEY"
         );
 
-        const outLen = Math.max(1, Number(outLenArg) || 32);
+        // Bound the KDF output length: it drives the concatKdf digest loop, so an
+        // unbounded value (e.g. Infinity via the API) would loop forever and a huge
+        // finite value would exhaust memory. Blank falls back to the 32-byte default.
+        const outLen = (outLenArg === "" || outLenArg === null || outLenArg === undefined) ? 32 : Number(outLenArg);
+        if (!Number.isInteger(outLen) || outLen < 1 || outLen > 1024)
+            throw new OperationError("KDF output length must be an integer between 1 and 1024 bytes.");
 
         const sharedInfoHexNorm = (sharedInfoHex || "").replace(/\s+/g, "");
         if (sharedInfoHexNorm.length % 2 !== 0 ||
@@ -245,24 +250,30 @@ class DeriveECDHKeyMaterial extends Operation {
             new Uint8Array(sharedInfoHexNorm.match(/.{2}/g).map(h => parseInt(h, 16))) :
             new Uint8Array();
 
-        const privateKey = await crypto.subtle.importKey(
-            "pkcs8", privateDer,
-            { name: "ECDH", namedCurve: curve },
-            false, ["deriveBits"]
-        );
-
-        const publicKey = await crypto.subtle.importKey(
-            "spki", publicDer,
-            { name: "ECDH", namedCurve: curve },
-            false, []
-        );
-
         // P-521 has a 521-bit field; deriveBits requires a multiple of 8,
         // so request 528 bits (66 bytes) and WebCrypto returns the full x-coordinate.
         const curveBits = curve === "P-256" ? 256 : curve === "P-384" ? 384 : 528;
-        const rawSecret = new Uint8Array(
-            await crypto.subtle.deriveBits({ name: "ECDH", public: publicKey }, privateKey, curveBits)
-        );
+
+        let rawSecret;
+        try {
+            const privateKey = await crypto.subtle.importKey(
+                "pkcs8", privateDer,
+                { name: "ECDH", namedCurve: curve },
+                false, ["deriveBits"]
+            );
+
+            const publicKey = await crypto.subtle.importKey(
+                "spki", publicDer,
+                { name: "ECDH", namedCurve: curve },
+                false, []
+            );
+
+            rawSecret = new Uint8Array(
+                await crypto.subtle.deriveBits({ name: "ECDH", public: publicKey }, privateKey, curveBits)
+            );
+        } catch (e) {
+            throw new OperationError(`ECDH key agreement failed — check that both keys are valid and on curve ${curve}: ${e.message}`);
+        }
 
         let out;
         if (kdf === "Concat KDF SHA-256") {

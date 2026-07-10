@@ -12,6 +12,12 @@
 import OperationError from "../errors/OperationError.mjs";
 import EMV_TAG_DICTIONARY from "./EmvTlvDictionary.mjs";
 
+// Cap constructed-tag recursion. Without it, a deeply nested constructed blob
+// recurses once per level while materializing each level's full value hex,
+// giving O(n^2) time/memory — a remote OOM via the Node REST API. Real EMV data
+// nests only a handful of levels; 32 is far beyond any legitimate structure.
+const MAX_TLV_DEPTH = 32;
+
 /**
  * Parse a hex string into a Uint8Array of bytes.
  * @param {string} hex
@@ -139,11 +145,16 @@ function parseTlvSequence(bytes, start, end, depth) {
         };
 
         if (tlv.isConstructed && tlv.length > 0) {
-            try {
-                record.children = parseTlvSequence(tlv.valueBytes, 0, tlv.valueBytes.length, depth + 1);
-            } catch (_) {
+            if (depth + 1 > MAX_TLV_DEPTH) {
                 record.children = [];
-                record.parseWarning = "Could not parse constructed value as BER-TLV.";
+                record.parseWarning = `Constructed-tag nesting exceeds ${MAX_TLV_DEPTH} levels; not descending further.`;
+            } else {
+                try {
+                    record.children = parseTlvSequence(tlv.valueBytes, 0, tlv.valueBytes.length, depth + 1);
+                } catch (_) {
+                    record.children = [];
+                    record.parseWarning = "Could not parse constructed value as BER-TLV.";
+                }
             }
         }
 

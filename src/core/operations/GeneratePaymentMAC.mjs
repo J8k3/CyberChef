@@ -8,6 +8,32 @@ import { ISO9797_PADDING_METHODS, PAYMENT_MAC_METHODS, generatePaymentMac } from
 
 /**
  * Generate payment MAC operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     ISO 9797-1:2011 — §7.2
+ * @rule     Algorithm 1 is CBC-MAC with the full block cipher applied to every block and no output transformation (Introduction: only Algorithms 2, 3, 5, 6 apply a final transformation); with a TDES key the cipher is TDES, since §5 restricts DEA to Algorithms 3 and 4.
+ * @status   externally-verified
+ * @evidence apc-crossval 2impl differential vs APC generate_mac ISO9797_ALGORITHM1, 2026-07-08: multi-block cases (8/16/24/32 bytes, fresh random keys) all match. Clause text verified against ISO/IEC 9797-1:2011; independent TDES-CBC reference (Python cryptography)
+ *
+ * @spec     ISO 9797-1:2011 — §7.4
+ * @rule     Algorithm 3 (retail MAC): single-DES CBC-MAC under K1 with final output transformation E(K1)[D(K2)[state]].
+ * @status   externally-verified
+ * @evidence APC comparison 2026-05-19 (ISO9797_ALGORITHM3 MATCH)
+ *
+ * @spec     ISO 9797-1:2011 — §6.3.2 / §6.3.3
+ * @rule     Padding Method 1 right-pads with zeros to a positive multiple of the block size (§6.3.2 NOTE 2: an empty message pads to one all-zero block); Method 2 appends a '1' bit (0x80) then zero-pads.
+ * @status   externally-verified
+ * @evidence Clause text verified against ISO/IEC 9797-1:2011 (iTeh preview, 2026-07-08); empty-message MAC equals the key's APC-computed KCV (08D7B4), test vector in Payment.mjs
+ *
+ * @spec     AS2805.4.1 — MAC generation
+ * @rule     AS2805-4.1 MAC equals the ISO 9797-1 Algorithm 3 retail MAC (zero padding by default).
+ * @status   cited-unverified
+ *
+ * @spec     ANSI X9.24-1 — §7.5
+ * @rule     DUKPT methods derive the transaction MAC key from the BDK/KSN using the MAC Request or MAC Response variant before MACing.
+ * @status   externally-verified
+ * @evidence APC comparison 2026-05-19 (DukptKeyVariant=REQUEST MATCH); IPEK matches published X9.24-1 test vector
  */
 class GeneratePaymentMAC extends Operation {
 

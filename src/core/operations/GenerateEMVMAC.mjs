@@ -8,6 +8,18 @@ import { generateEmvMac } from "../lib/EmvMac.mjs";
 
 /**
  * Generate EMV MAC operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     EMV 4.3 Book 2 — §9.2.3 (MAC Computation) / Annex A1.2; payShield PUGD0537-004 Rev A p.475 (KU)
+ * @rule     Secure-messaging MAC for issuer scripts: ISO 9797-1 Algorithm 3 (retail MAC) under the session integrity key (SK-SMI), message padded per ISO 9797-1 Method 2 (0x80 then zeros). Issuer-script MACs are conventionally 4 bytes. Note APC's EmvMac does NOT pad MessageData — the caller pads before the call (apc-hsm-proxy, verified live).
+ * @status   cited-unverified
+ * @evidence Section numbering verified against EMV Book 2 TOC (2026-07-08); padding/length behavior from apc-hsm-proxy issuer_script_mac live differentials (15/15). APC comparison 2026-05-19 mismatched under default Method 2 — APC generate_mac EmvMac derives SK-SMI internally from the IMK (MCP KB issue #16), so a direct-key comparison is not like-for-like; a supplied-SK 2impl check of this op remains open
+ *
+ * @spec     ISO 9797-1:2011 — §7.4
+ * @rule     Underlying retail-MAC construction shared with MAC Generate.
+ * @status   externally-verified
+ * @evidence APC comparison 2026-05-19 (ISO9797_ALGORITHM3 MATCH)
  */
 class GenerateEMVMAC extends Operation {
     /**

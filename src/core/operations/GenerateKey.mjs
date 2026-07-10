@@ -6,6 +6,7 @@
 import Operation from "../Operation.mjs";
 import OperationError from "../errors/OperationError.mjs";
 import forge from "node-forge";
+import { secureRandomBytes as randomBytes } from "../lib/PaymentUtils.mjs";
 
 // ── Key / IV specs ────────────────────────────────────────────────────────────
 
@@ -22,23 +23,6 @@ const KEY_SPECS = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Generates n cryptographically random bytes using WebCrypto or node-forge.
- *
- * @param {number} n
- * @returns {Uint8Array}
- */
-function randomBytes(n) {
-    const buf = new Uint8Array(n);
-    if (typeof globalThis !== "undefined" && globalThis.crypto && globalThis.crypto.getRandomValues) {
-        globalThis.crypto.getRandomValues(buf);
-    } else {
-        const raw = forge.random.getBytesSync(n);
-        for (let i = 0; i < n; i++) buf[i] = raw.charCodeAt(i);
-    }
-    return buf;
-}
 
 /**
  * Converts a Uint8Array to an uppercase hex string.
@@ -82,7 +66,10 @@ function shiftLeft1(a) {
  * @returns {string}
  */
 function aesCmacKcv(key) {
-    const k = key.slice(0, 16);
+    // Use the full key. forge AES-ECB selects AES-128/192/256 by key length, so
+    // truncating to 16 bytes would compute an AES-128 CMAC of the first half and
+    // produce the wrong KCV for AES-192/256 keys.
+    const k = key;
     const RB = new Uint8Array(16); RB[15] = 0x87;
     const cipher = forge.cipher.createCipher("AES-ECB", toByteStr(k));
 
@@ -174,10 +161,18 @@ class GenerateKey extends Operation {
     run(input, args) {
         const [keyType, customLength, computeKcv, outputJson] = args;
 
+        if (!Object.prototype.hasOwnProperty.call(KEY_SPECS, keyType))
+            throw new OperationError("Unknown key / material type.");
         const spec = KEY_SPECS[keyType];
-        if (!spec) throw new OperationError("Unknown key / material type.");
 
-        const byteCount = spec.type === "custom" ? Math.max(1, Math.min(256, customLength)) : spec.bytes;
+        let byteCount;
+        if (spec.type === "custom") {
+            if (!Number.isInteger(customLength) || customLength < 1 || customLength > 256)
+                throw new OperationError("Custom length must be an integer between 1 and 256 bytes.");
+            byteCount = customLength;
+        } else {
+            byteCount = spec.bytes;
+        }
         const material  = randomBytes(byteCount);
         const hex       = toHex(material);
 

@@ -5,24 +5,9 @@
 
 import forge from "node-forge";
 import OperationError from "../errors/OperationError.mjs";
-import { bytesToHex, parseHexBytes, toByteString } from "./PaymentUtils.mjs";
+import { bytesToHex, parseHexBytes, toByteString, xorBytes } from "./PaymentUtils.mjs";
 
 const ISO9797_PADDING_METHODS = ["Method 1", "Method 2"];
-
-/**
- * XORs two byte arrays of equal length.
- *
- * @param {Uint8Array} left
- * @param {Uint8Array} right
- * @returns {Uint8Array}
- */
-function xorBytes(left, right) {
-    const out = new Uint8Array(left.length);
-    for (let i = 0; i < left.length; i++) {
-        out[i] = left[i] ^ right[i];
-    }
-    return out;
-}
 
 /**
  * Pads input according to ISO/IEC 9797-1 padding method 1 or 2.
@@ -38,6 +23,9 @@ function applyIso9797Padding(data, blockSize, paddingMethod) {
     }
 
     if (paddingMethod === "Method 1") {
+        // ISO 9797-1:2011 §6.3.2 NOTE 2: "If the data string is empty, Padding
+        // Method 1 specifies that it is right-padded with n '0' bits."
+        if (data.length === 0) return new Uint8Array(blockSize);
         const remainder = data.length % blockSize;
         if (remainder === 0) return Uint8Array.from(data);
         const out = new Uint8Array(data.length + (blockSize - remainder));
@@ -125,6 +113,23 @@ function runDesCbcMac(key8, padded) {
 }
 
 /**
+ * Encrypts blocks with TDES CBC-MAC chaining (ISO 9797-1 Algorithm 1 with a
+ * TDES block cipher: every block through the full cipher, no output transform).
+ *
+ * @param {Uint8Array} key
+ * @param {Uint8Array} padded
+ * @returns {Uint8Array}
+ */
+function runTdesCbcMac(key, padded) {
+    let state = new Uint8Array(8);
+    for (let i = 0; i < padded.length; i += 8) {
+        const block = padded.slice(i, i + 8);
+        state = encryptTdesBlock(key, xorBytes(state, block));
+    }
+    return state;
+}
+
+/**
  * Normalizes a MAC key for ISO9797-style MACs.
  *
  * @param {string} keyHex
@@ -147,7 +152,7 @@ function generateIso9797Algorithm1Mac(inputHex, keyHex, paddingMethod, outputByt
     const data = parseHexBytes(inputHex, "Input data");
     const key = normalizeIso9797Key(keyHex);
     const padded = applyIso9797Padding(data, 8, paddingMethod);
-    const fullMacBytes = encryptTdesBlock(key, runDesCbcMac(key.slice(0, 8), padded));
+    const fullMacBytes = runTdesCbcMac(key, padded);
     const fullMacHex = bytesToHex(fullMacBytes);
     const macHex = fullMacHex.substring(0, Math.max(1, Math.min(8, Number(outputBytes) || 8)) * 2);
 

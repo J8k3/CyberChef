@@ -96,3 +96,33 @@ When adding, renaming, or removing a payment operation:
    Or `npx grunt dev` / `npx grunt prod`, which runs both steps automatically. CI runs them on every build. **Symptom of a stale registry:** `TypeError: f[e.module][e.name] is not a constructor` at runtime.
    **Grunt alias:** if using grunt tasks directly, the correct task is `npx grunt exec:generateConfig`. `npx grunt exec:generateNodeIndex` is a *different* task — it only regenerates the Node API wrapper (`src/node/index.mjs`) and does NOT update `OperationConfig.json` or `modules/Payment.mjs`.
 
+### Spec grounding (source attribution)
+
+Every payment operation must carry a **`Grounding` block** in its class-level JSDoc comment (immediately above `class <Name> extends Operation {`) recording *why* it is built the way it is. This is what lets a reviewer who cannot run an HSM trust the behavior, and it is a **hard requirement** — an operation whose behavior is not grounded is not done. Grounding lives in comments, **never a runtime field**: nothing in the framework reads a `specGrounding` property, so it would be dead metadata (verified — `generateConfig` serializes only a fixed allowlist).
+
+Format — one `@spec`/`@rule`/`@status`/`@evidence` group per load-bearing rule:
+
+```js
+/**
+ * <Operation> operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ * @spec     ISO 9797-1:2011 §7.2
+ * @rule     Algorithm 1 is CBC-MAC with the full block cipher on every block, no output transform (TDES per §5).
+ * @status   externally-verified
+ * @evidence APC generate_mac ISO9797_ALGORITHM1 — apc-crossval 2impl, 2026-07-08.
+ */
+```
+
+**Every group must carry appropriate source attribution. These are non-negotiable:**
+
+1. **`@spec` names a document AND a precise section** — never a bare standard name. `ISO 9797-1:2011 §7.2`, `EMV 4.3 Book 2 Annex A1.4.1`, `PUGD0537-004 Rev A p.250 (CW)`. If a rule follows a vendor convention rather than a standard, cite the vendor document; if it follows an APC behavior, name the APC operation. A group with no citable source is not allowed to sit at any status other than `ungrounded`.
+2. **Section numbers are copied from the document, not recalled from memory.** A cite you have not looked at is not a cite — if you cannot open the document, mark the rule `cited-unverified` and say the section is unconfirmed. (This rule exists because a memory-recalled ISO 9797-1 pass got three clause numbers wrong.)
+3. **`@status` is exactly one of:** `externally-verified` | `cited-unverified` | `vendor-convention` | `ungrounded`.
+   - `externally-verified` — confirmed against an independent implementation (APC, a published standard test vector, or a second reference implementation). **`@evidence` is REQUIRED** and must name what backs it: which APC operation, which published vector, which cross-val run, and the date.
+   - `cited-unverified` — the cite is believed correct but not independently checked. `@evidence` optional.
+   - `vendor-convention` — a vendor wire format / HSM convention, not a standard. Name the vendor document in `@spec`.
+   - `ungrounded` — behavior with no located citation. A **tracked defect**, not a resting state: say what is unresolved, and call it out explicitly in the PR description. Do not add `ungrounded` behavior silently.
+4. **When a cross-check upgrades a rule's status, update both** the `@status`/`@evidence` in the comment **and** the APC Comparison table in `PAYMENT_RECIPES.md`.
+5. **Do not paraphrase a cite to make it fit.** If the code deviates from the spec (e.g. an APC quirk), the `@rule` states the deviation and `@evidence` records who confirmed it — an honest "deviates from X, matches APC" beats a tidy but false "per X".
+

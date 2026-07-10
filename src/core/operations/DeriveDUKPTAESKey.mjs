@@ -314,6 +314,8 @@ class DeriveDUKPTAESKey extends Operation {
         }
 
         // Derive working key
+        if (!Object.prototype.hasOwnProperty.call(KEY_USAGE, purpose))
+            throw new OperationError(`Unknown key purpose: ${purpose}`);
         const txKey  = deriveTransactionKey(ik, iki, counter);
         const wkKey  = deriveWorkingKey(txKey, iki, counter, purpose);
 

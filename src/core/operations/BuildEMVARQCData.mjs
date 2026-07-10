@@ -8,6 +8,12 @@ import { buildCdol1, formatHex, formatJson, formatAnnotatedTlv } from "../lib/Em
 
 /**
  * EMV Build ARQC Data operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     EMV 4.3 Book 2 — §8.1.1 (Data Selection)
+ * @rule     Minimum recommended set of data elements for Application Cryptogram generation: 9F02, 9F03, 9F1A, 95, 5F2A, 9A, 9C, 9F37 (terminal) plus 82 and 9F36 (ICC), concatenated in this order.
+ * @status   cited-unverified
  */
 class BuildEMVARQCData extends Operation {
 
@@ -17,7 +23,7 @@ class BuildEMVARQCData extends Operation {
 
         this.name = "EMV Build ARQC Data";
         this.module = "Payment";
-        this.description = "Assemble the 10 standard EMVCo CDOL1 fields into the preassembled ARQC input data block used as input to <b>EMV Generate ARQC</b> and <b>EMV Verify ARQC</b>. All data comes from arguments — the input field is not used.<br><br><b>Input:</b> ignored.<br><b>Arguments:</b> one hex field per CDOL1 element plus an output format selector.<br><br><b>Network coverage:</b> the 10-field, 33-byte layout is identical across Visa, Mastercard, Amex, Discover, JCB, and UnionPay acquirer flows. Network differences (Visa/Amex Option A vs Mastercard Option B session-key derivation) occur upstream in key derivation and do not affect the CDOL1 data block structure.<br><br><b>Chaining:</b> set Output format to <b>Hex</b> and place this operation first in a recipe to supply the preimage directly into <b>EMV Generate ARQC</b> without using the input field.";
+        this.description = "Assemble the 10 standard EMVCo CDOL1 fields into the preassembled ARQC input data block used as input to <b>EMV Generate ARQC</b> and <b>EMV Verify ARQC</b>. All data comes from arguments — the input field is not used.<br><br><b>Input:</b> ignored.<br><b>Arguments:</b> one hex field per CDOL1 element plus an output format selector.<br><br><b>Network coverage:</b> the 10-field, 33-byte layout is identical across Visa, Mastercard, Amex, Discover, JCB, and UnionPay acquirer flows. Network differences (ICC master-key derivation per EMV Book 2 Annex A1.4 and scheme-specific session-key derivation) occur upstream in key derivation and do not affect the CDOL1 data block structure.<br><br><b>Chaining:</b> set Output format to <b>Hex</b> and place this operation first in a recipe to supply the preimage directly into <b>EMV Generate ARQC</b> without using the input field.";
         this.inlineHelp = "<strong>Args:</strong> one hex field per CDOL1 element. Set format to <strong>Hex</strong> to chain into EMV Generate ARQC.";
         this.testDataSamples = [
             {

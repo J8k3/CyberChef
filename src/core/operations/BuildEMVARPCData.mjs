@@ -12,6 +12,17 @@ import {
 
 /**
  * EMV Build ARPC Data operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     EMV 4.3 Book 2 — §8.2.2 (ARPC Method 2)
+ * @rule     ARPC Method 2 data: ARQC (8 bytes) || CSU (4 bytes) || Proprietary Authentication Data (0–8 bytes).
+ * @status   cited-unverified
+ *
+ * @spec     EMV 4.3 Book 2 — §8.2.1 (ARPC Method 1)
+ * @rule     Method 1 preimage is ARQC(8) || ARC(2). EMV Generate ARPC consumes it as the inputs to ARPC = TDES(SK)[ARQC XOR (ARC || six zero bytes)] — it is a structured input pair, not a MAC preimage, so this op only assembles the two fields; the XOR-and-encrypt happens in EMV Generate ARPC.
+ * @status   externally-verified
+ * @evidence Downstream EMV Generate ARPC Method 1 verified live against APC ArpcMethod1, 2026-07-08
  */
 class BuildEMVARPCData extends Operation {
 

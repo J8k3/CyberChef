@@ -5,22 +5,8 @@
  */
 
 import Operation from "../Operation.mjs";
-
-/**
- * Returns cryptographically random bytes.
- *
- * @param {number} n
- * @returns {Uint8Array}
- */
-function randomBytes(n) {
-    const buf = new Uint8Array(n);
-    if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-        crypto.getRandomValues(buf);
-    } else {
-        for (let i = 0; i < n; i++) buf[i] = Math.floor(Math.random() * 256);
-    }
-    return buf;
-}
+import OperationError from "../errors/OperationError.mjs";
+import { secureRandomBytes as randomBytes } from "../lib/PaymentUtils.mjs";
 
 /**
  * Converts a Uint8Array to an uppercase hex string.
@@ -90,13 +76,17 @@ class KeyComponentSplit extends Operation {
         const [numComponents, outputJson] = args;
 
         const keyHex = input.trim().toUpperCase().replace(/\s+/g, "");
-        if (keyHex.length === 0) throw new Error("Input key is empty.");
+        if (keyHex.length === 0) throw new OperationError("Input key is empty.");
         if (!/^[0-9A-F]+$/.test(keyHex) || keyHex.length % 2 !== 0) {
-            throw new Error("Input must be a valid even-length hex string.");
+            throw new OperationError("Input must be a valid even-length hex string.");
         }
+        // Bound the key length: it drives the CSPRNG fill, and a key over the
+        // WebCrypto 65536-byte limit would surface a raw QuotaExceededError.
+        // 256 bytes is well beyond any payment key.
+        if (keyHex.length > 512) throw new OperationError("Input key must be at most 256 bytes.");
 
         const n = Math.round(numComponents);
-        if (n < 2 || n > 8) throw new Error("Number of components must be between 2 and 8.");
+        if (!Number.isInteger(n) || n < 2 || n > 8) throw new OperationError("Number of components must be an integer between 2 and 8.");
 
         const keyBytes = hexToBytes(keyHex);
         const len = keyBytes.length;

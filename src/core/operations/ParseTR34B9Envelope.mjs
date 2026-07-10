@@ -55,12 +55,22 @@ function parseAsnLength(bytes, offset) {
         return { headerLength: 2, valueLength: first };
 
     const lengthOfLength = first & 0x7f;
+    // Reject indefinite form (0x80, not valid in DER) and any length wider than
+    // 4 bytes (>4 GB — never legitimate here, and >4 bytes would overflow the
+    // accumulator below).
+    if (lengthOfLength === 0 || lengthOfLength > 4)
+        throw new OperationError("Unsupported ASN.1 length encoding.");
     if (offset + 2 + lengthOfLength > bytes.length)
         throw new OperationError("Invalid ASN.1 length field.");
 
+    // Accumulate with multiplication, not `<< 8`: JS bitwise operators are
+    // 32-bit signed, so a 4-byte length would overflow to a negative value.
     let valueLength = 0;
     for (let i = 0; i < lengthOfLength; i++)
-        valueLength = (valueLength << 8) | bytes[offset + 2 + i];
+        valueLength = valueLength * 256 + bytes[offset + 2 + i];
+
+    if (valueLength > bytes.length)
+        throw new OperationError("ASN.1 length exceeds available data.");
 
     return { headerLength: 2 + lengthOfLength, valueLength };
 }

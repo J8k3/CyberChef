@@ -8,6 +8,18 @@ import { generateIbm3624PinOffset } from "../lib/PaymentPinVerification.mjs";
 
 /**
  * Generate IBM 3624 PIN offset operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     IBM 3624 PIN offset method — as specified in Thales payShield PUGD0537-004 Rev A p.263 (DA) / p.255 (DU) / p.349 (GO) and APC Ibm3624PinOffset
+ * @rule     Offset digit i = (PIN digit i − natural PIN digit i) mod 10, where the natural PIN is the decimalized TDES encryption of the validation data padded to 16 with the pad character ('F' by convention). The offset has exactly one significant digit per PIN digit; natural PIN = all-zero offset.
+ * @status   externally-verified
+ * @evidence apc-crossval 2impl differential vs APC generate_pin_data Ibm3624PinOffset (randomized PAN/PIN/decimalization table, shared clear PVK), latest run 2026-07-08 all-match; APC verify_pin_data cross-check 2026-05-19 (offset 0324 MATCH)
+ *
+ * @spec     Thales payShield wire convention — PUGD0537-004 Rev A p.263 (DA) / p.255 (DU) / p.349 (GO); PUGD0538-003 p.112 (CK)
+ * @rule     HSM wire formats carry the offset as a fixed 12-character field left-justified and right-padded with 'F'; this operation emits only the significant digits (APC convention: ^[0-9]+$). Append 'F' fill yourself if a consumer requires the fixed-width field.
+ * @status   vendor-convention
+ * @evidence apc-hsm-proxy issue #21 — live differentials caught the raw-padded-offset bug in three handlers (GO returned error 41 for every valid PIN); proxy strips before the APC call and re-pads the DV response field
  */
 class GenerateIBM3624PINOffset extends Operation {
     /**

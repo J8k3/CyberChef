@@ -219,6 +219,53 @@ TestRegister.addTests([
         ]
     },
     {
+        // Optional-block length is 2 HEX digits per X9.143: "0A" = 10 bytes, not
+        // 10 decimal. A decimal parse reads "0A" as 0 and drops the block.
+        name: "Parse TR-31 key block: hex-length optional block",
+        input: "D0026D0AB00E0100PB0A123456",
+        expectedOutput: JSON.stringify({
+            raw: "D0026D0AB00E0100PB0A123456",
+            fixedHeader: {
+                raw: "D0026D0AB00E0100",
+                versionId: "D",
+                versionDescription: "ANSI X9.24-2 (2017) — AES, Key Derivation Binding Method (current PCI standard)",
+                declaredBlockLength: 26,
+                keyUsage: "D0",
+                keyUsageDescription: "Symmetric Data Encryption Key (DEK)",
+                algorithm: "A",
+                algorithmDescription: "AES",
+                modeOfUse: "B",
+                modeOfUseDescription: "Both Encrypt and Decrypt / Both Generate and Verify",
+                keyVersionNumber: "00",
+                exportability: "E",
+                exportabilityDescription: "Exportable — can be wrapped under a KEK in a trusted key block",
+                optionalBlocksDeclared: 1,
+                reserved: "00"
+            },
+            compliance: [
+                "OK: Version D (AES Key Derivation) — current PCI-required format",
+                "NOTE: Exportable key — verify the wrapping KEK is a PCI-approved key block protection key"
+            ],
+            optionalBlocks: [
+                {
+                    id: "PB",
+                    idDescription: "Padding block",
+                    length: 10,
+                    value: "123456"
+                }
+            ],
+            bodyOffset: 26,
+            remainingBody: "",
+            notes: []
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "TR-31 Parse Key Block",
+                args: [true]
+            }
+        ]
+    },
+    {
         name: "Parse TR-34 key transport: split sections",
         input: "001730303030423930303100112233300030303034AABBCCDD",
         expectedOutput: JSON.stringify({
@@ -301,6 +348,32 @@ TestRegister.addTests([
             {
                 op: "Payment Calculate KCV",
                 args: ["Hex", "AES-CMAC (Ones)", 6]
+            }
+        ]
+    },
+    {
+        // AES-256 KCV must be the CMAC of the FULL 32-byte key, not a 16-byte
+        // truncation. Known answer cross-checked with an independent AES-256-CMAC.
+        name: "Payment Calculate KCV: AES-256 CMAC zeros (full-key)",
+        input: "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F",
+        expectedOutput: "377822",
+        recipeConfig: [
+            {
+                op: "Payment Calculate KCV",
+                args: ["Hex", "AES-CMAC (Zeros)", 6]
+            }
+        ]
+    },
+    {
+        // Custom length must be a whole number of bytes; a non-integer must be
+        // rejected rather than silently producing an empty key.
+        name: "Key Generate: rejects non-integer custom length",
+        input: "",
+        expectedOutput: "Custom length must be an integer between 1 and 256 bytes.",
+        recipeConfig: [
+            {
+                op: "Key Generate",
+                args: ["Custom random bytes (specify below)", 1.5, false, false]
             }
         ]
     },
@@ -843,13 +916,46 @@ TestRegister.addTests([
         ]
     },
     {
-        name: "EMV Generate ARPC: AES-CMAC profile",
-        input: "11223344556677889900AABBCCDDEEFF",
-        expectedOutput: "312442B1A4D64F94",
+        // ARPC Method 1 (EMV 4.3 Book 2 §8.2.1): ARPC = TDES(SK)[ARQC ⊕ (ARC||00*6)].
+        // Input is the Method 1 preimage ARQC(8)||ARC(2). Vector cross-checked
+        // live against APC verify_auth_request_cryptogram (ArpcMethod1), 2026-07-08.
+        name: "EMV Generate ARPC: Method 1 (TDES XOR-encrypt)",
+        input: "82ACC80D7EAA12BB3030",
+        expectedOutput: "C8178A8DF72AB1AB",
         recipeConfig: [
             {
                 op: "EMV Generate ARPC",
-                args: ["00112233445566778899AABBCCDDEEFF", 8, false]
+                args: ["5BBFD4C7755611D6F5BC7A7FE16E23ED", "Method 1 (Visa/Amex/Discover)", false]
+            }
+        ]
+    },
+    {
+        // ARPC Method 2 (EMV 4.3 Book 2 §8.2.2): leftmost 4 bytes of the ISO 9797-1
+        // Algorithm 3 retail MAC over method-2-padded ARQC(8)||CSU(4)||prop. Vector
+        // cross-checked live against APC verify_auth_request_cryptogram (ArpcMethod2).
+        name: "EMV Generate ARPC: Method 2 (Retail MAC, 4 bytes)",
+        input: "82ACC80D7EAA12BB00000000",
+        expectedOutput: "2AD49EE5",
+        recipeConfig: [
+            {
+                op: "EMV Generate ARPC",
+                args: ["5BBFD4C7755611D6F5BC7A7FE16E23ED", "Method 2 (Mastercard)", false]
+            }
+        ]
+    },
+    {
+        // Chain the assembler into the generator: Build ARPC Data (Method 1) → Generate ARPC.
+        name: "Chain: EMV Build ARPC Data → Generate ARPC (Method 1)",
+        input: "",
+        expectedOutput: "C8178A8DF72AB1AB",
+        recipeConfig: [
+            {
+                op: "EMV Build ARPC Data",
+                args: ["Method 1 (Visa/Amex/Discover)", "82ACC80D7EAA12BB", "3030", "00000000", "", "Hex"]
+            },
+            {
+                op: "EMV Generate ARPC",
+                args: ["5BBFD4C7755611D6F5BC7A7FE16E23ED", "Method 1 (Visa/Amex/Discover)", false]
             }
         ]
     },
@@ -1263,9 +1369,42 @@ TestRegister.addTests([
         ]
     },
     {
+        // ISO 9797-1:2011 §7.2 Algorithm 1: TDES-CBC-MAC over every block, no
+        // output transform. Two-block input on purpose — for a single block
+        // Algorithm 1 and Algorithm 3 coincide, so one block cannot
+        // distinguish the constructions. Reference vector cross-computed with
+        // an independent TDES-CBC implementation (Python cryptography).
         name: "MAC Generate: ISO 9797-1 Algorithm 1",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "B72A829449FFEE5A",
+        recipeConfig: [
+            {
+                op: "MAC Generate",
+                args: ["Hex", "ISO 9797-1 Algorithm 1", "0123456789ABCDEFFEDCBA9876543210", "Hex", "", "Method 1", 8, false]
+            }
+        ]
+    },
+    {
+        // ISO 9797-1:2011 §7.2 Algorithm 1, single block: must equal the
+        // Algorithm 3 retail MAC of the same input (the constructions
+        // coincide at one block — E(K1)[D(K2)[E(K1)[data ⊕ 0]]] both ways).
+        name: "MAC Generate: ISO 9797-1 Algorithm 1 (single block, coincides with Algorithm 3)",
         input: "1122334455667788",
-        expectedOutput: "0C949BCDEF6FDF1D",
+        expectedOutput: "3EB3B72576BBBE83",
+        recipeConfig: [
+            {
+                op: "MAC Generate",
+                args: ["Hex", "ISO 9797-1 Algorithm 1", "0123456789ABCDEFFEDCBA9876543210", "Hex", "", "Method 1", 8, false]
+            }
+        ]
+    },
+    {
+        // ISO 9797-1:2011 §6.3.2 padding Method 1: an empty message pads to a
+        // single all-zero block, so the MAC equals TDES-ECB(K, 0^8) — the same
+        // computation as the key's KCV (documented KCV 08D7B4 for this key).
+        name: "MAC Generate: ISO 9797-1 Algorithm 1 (empty input pads to one zero block)",
+        input: "",
+        expectedOutput: "08D7B4FB629D0885",
         recipeConfig: [
             {
                 op: "MAC Generate",
@@ -1397,6 +1536,19 @@ TestRegister.addTests([
         ]
     },
     {
+        // A truncated expected MAC (< 4 bytes) must be rejected, not accepted at
+        // a 1-in-256 guess rate. Mirrors the floor on the generic MAC Verify op.
+        name: "EMV Verify MAC: rejects sub-4-byte expected MAC",
+        input: "8424000008999E57FD0F47CACE0007",
+        expectedOutput: "Expected MAC must be at least 4 bytes (8 hex characters).",
+        recipeConfig: [
+            {
+                op: "EMV Verify MAC",
+                args: ["0123456789ABCDEFFEDCBA9876543210", "2A", "Method 2", true]
+            }
+        ]
+    },
+    {
         name: "EMV Generate MAC (PIN Change): issuer script sample",
         input: "00A4040008A000000004101080D80500000001010A04000000000000",
         expectedOutput: "C0F24786EF1C4522",
@@ -1513,6 +1665,33 @@ TestRegister.addTests([
     {
         name: "PIN IBM 3624 Verify: known sample",
         input: "3207",
+        expectedOutput: JSON.stringify({
+            pinVerificationKeyHex: "0123456789ABCDEFFEDCBA9876543210",
+            pinValidationData: "5432101234567890",
+            pinValidationDataPadCharacter: "F",
+            pinLength: 4,
+            validationBlockHex: "5432101234567890",
+            encryptedValidationBlockHex: "8A3712EE04F010A0",
+            decimalized: "8037124404501000",
+            naturalPin: "8037",
+            pin: "1234",
+            pinOffset: "3207",
+            expectedPinOffset: "3207",
+            valid: true
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "PIN IBM 3624 Verify",
+                args: ["0123456789ABCDEFFEDCBA9876543210", "0123456789012345", "5432101234567890", "F", "1234", true]
+            }
+        ]
+    },
+    {
+        // payShield-format offset: fixed 12-character field right-padded with
+        // 'F'. The offset is defined only for its significant digits, so the
+        // trailing fill must be ignored — same rule as apc-hsm-proxy issue #21.
+        name: "PIN IBM 3624 Verify: payShield F-padded offset field",
+        input: "3207FFFFFFFF",
         expectedOutput: JSON.stringify({
             pinVerificationKeyHex: "0123456789ABCDEFFEDCBA9876543210",
             pinValidationData: "5432101234567890",

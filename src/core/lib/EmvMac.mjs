@@ -41,6 +41,11 @@ function verifyEmvMac(messageHex, sessionKeyHex, expectedMac, paddingMethod="Met
     if (!/^[0-9A-F]+$/.test(normalizedExpected) || normalizedExpected.length % 2 !== 0) {
         throw new OperationError("Expected MAC must be even-length hex.");
     }
+    // Require at least 4 bytes: a 1-byte "MAC" would be guessable 1 in 256, and
+    // the comparison length is taken from this value.
+    if (normalizedExpected.length < 8) {
+        throw new OperationError("Expected MAC must be at least 4 bytes (8 hex characters).");
+    }
 
     const generated = generateEmvMac(messageHex, sessionKeyHex, normalizedExpected.length / 2, paddingMethod);
     return {

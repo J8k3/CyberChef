@@ -178,6 +178,11 @@ function verifyPaymentMac(input, inputFormat, method, keyValue, keyFormat, ksn, 
     if (!/^[0-9A-F]+$/.test(normalizedExpected) || normalizedExpected.length % 2 !== 0) {
         throw new OperationError("Expected MAC must be even-length hex.");
     }
+    // Require at least 4 bytes: a 1-byte "MAC" would accept 1 input in 256 by
+    // brute force, and the comparison length is taken from this value.
+    if (normalizedExpected.length < 8) {
+        throw new OperationError("Expected MAC must be at least 4 bytes (8 hex characters).");
+    }
 
     const generated = generatePaymentMac(
         input,

@@ -40,6 +40,30 @@ function normalizeHex(value, name, allowEmpty=false) {
 }
 
 /**
+ * Validates the IV for the selected profile and returns it normalized.
+ *
+ * ECB modes take no IV; CBC/CTR modes require a full block (16 bytes for AES,
+ * 8 for TDES). This is enforced here so a missing/short/over-long IV fails with
+ * a clear OperationError rather than a raw forge exception or a silent truncation.
+ *
+ * @param {string} profile
+ * @param {string} ivHex
+ * @returns {string}
+ */
+function normalizeIv(profile, ivHex) {
+    const iv = normalizeHex(ivHex, "IV", true);
+    const isEcb = profile.endsWith("ECB");
+    if (isEcb) {
+        if (iv.length) throw new OperationError("ECB mode does not use an IV; leave the IV blank.");
+        return "";
+    }
+    const expectedBytes = profile.startsWith("AES ") ? 16 : 8;
+    if (iv.length !== expectedBytes * 2)
+        throw new OperationError(`${profile} requires a ${expectedBytes}-byte IV (${expectedBytes * 2} hex characters).`);
+    return iv;
+}
+
+/**
  * Resolves the working key for the selected cipher profile.
  *
  * @param {string} profile
@@ -84,7 +108,7 @@ function resolveCipherKey(profile, keyHex, ksn, dukptVariant) {
  */
 function encryptPaymentData(inputHex, profile, keyHex, ivHex, ksn, dukptVariant) {
     const plaintextHex = normalizeHex(inputHex, "Input data");
-    const normalizedIv = normalizeHex(ivHex, "IV", true);
+    const normalizedIv = normalizeIv(profile, ivHex);
     const { keyHex: effectiveKeyHex, keyContext } = resolveCipherKey(profile, keyHex, ksn, dukptVariant);
 
     let ciphertextHex;
@@ -135,7 +159,7 @@ function encryptPaymentData(inputHex, profile, keyHex, ivHex, ksn, dukptVariant)
  */
 function decryptPaymentData(inputHex, profile, keyHex, ivHex, ksn, dukptVariant) {
     const ciphertextHex = normalizeHex(inputHex, "Input data");
-    const normalizedIv = normalizeHex(ivHex, "IV", true);
+    const normalizedIv = normalizeIv(profile, ivHex);
     const { keyHex: effectiveKeyHex, keyContext } = resolveCipherKey(profile, keyHex, ksn, dukptVariant);
 
     let plaintextHex;

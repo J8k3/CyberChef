@@ -8,6 +8,13 @@ import { ISO9797_PADDING_METHODS, PAYMENT_MAC_METHODS, verifyPaymentMac } from "
 
 /**
  * Verify payment MAC operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     ISO 9797-1:2011 — §7.2 / §7.4 / §6.3
+ * @rule     Recomputes the selected MAC (same constructions as MAC Generate) and compares against the expected value; see MAC Generate for the per-method grounding.
+ * @status   externally-verified
+ * @evidence Shares generatePaymentMac with MAC Generate; APC comparison 2026-05-19 (verify rows PASS)
  */
 class VerifyPaymentMAC extends Operation {
 
