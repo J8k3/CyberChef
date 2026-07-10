@@ -22,10 +22,29 @@
  * @rule     Key-exchange tag meanings from the AWS public Excrypt sample (key_exchange/hsm/futurex/commands.py). SINGLE SOURCE — not verified against the Futurex TRM/firmware; surfaced with a "medium confidence" note in the output.
  * @status   cited-unverified
  * @evidence Single-source public sample; a Futurex-experienced maintainer reviewed it as "generally correct" but could not confirm individual tag/enum semantics.
+ *
+ * @spec     Per-command tags — EMVA (ARQC verify) and GCVV (generate CVV)
+ * @rule     EMVA (FS/KM/CH/KP/KQ/KR/KS/KT/BO/BJ/KU) and GCVV (AV/CA/CB/FA/FB/FC) field meanings from a real jPOS Excrypt integration whose builders self-document each tag (EMVA's CH cites EMV Book 2 Annex A1.4.1). SINGLE SOURCE — medium confidence.
+ * @status   cited-unverified
+ * @evidence github.com/kakubila/jpos-excrypt-interface (FxArqcService/DioFxService for EMVA; FxCavService/DioFxService for GCVV, with a worked request/response example).
+ *
+ * @spec     Sensitive-tag set (field masking) and error/status conventions
+ * @rule     Tags flagged as carrying key material / PIN blocks / PANs / CVKs come from the jPOS Message PROTECTED_TAGS log-masking list — used only to flag a field sensitive (a safe over-approximation), never to assert its command-scoped meaning. Status conventions: BB ("Y" = success; proxy), GF ("GFY"/"GFN"; VirtuCrypt), and an ERRO error frame carrying AM (error code) + BB (description; jPOS).
+ * @status   cited-unverified
+ * @evidence github.com/kakubila/jpos-excrypt-interface Message.java (PROTECTED_TAGS, isError/getErrorCode/getErrorDescription).
  */
 
 import Operation from "../Operation.mjs";
 import OperationError from "../errors/OperationError.mjs";
+
+// Tags observed carrying key material, PIN blocks, PANs, or card-verification
+// keys (jPOS Message PROTECTED_TAGS log-masking list). Used ONLY to flag a
+// field as sensitive — a deliberate over-approximation for safe handling — and
+// never to assert a tag's exact meaning, which remains command-scoped.
+const SENSITIVE_TAGS = new Set([
+    "AX", "BT", "AL", "AK", "AI", "AF", "CA", "CB", "BZ", "KP",
+    "BG", "BH", "AV", "AP", "GK", "FC", "FT", "FA", "KQ", "BX", "FD",
+]);
 
 // Human-readable category labels. Category is descriptive metadata to help an
 // analyst group commands; it is not a cryptographic claim.
@@ -191,6 +210,35 @@ const COMMAND_TAGS = {
             AP: "Key-encryption key (KEK)",
         },
     },
+    EMVA: {
+        confidence: "medium",
+        note: "Tag meanings are from a single real integration (self-documenting, EMV Book 2-cited) and are not verified against the Futurex module documentation.",
+        tags: {
+            FS: "Mode (0, 1, or 3)",
+            KM: "Key derivation method (e.g. 3 = Mastercard M/Chip SKD)",
+            CH: "ICC master-key derivation mode (1 = EMV Book 2 Annex A1.4.1 Option A)",
+            KP: "IMK-AC — application-cryptogram master key (wrapped)",
+            KQ: "Account number (PAN)",
+            KR: "PAN sequence number",
+            KS: "Application Transaction Counter (ATC)",
+            KT: "Transaction data (CDOL)",
+            BO: "ARQC — the cryptogram being verified",
+            BJ: "Authorization Response Code (ARC) — present when FS=1",
+            KU: "Unpredictable Number (UN)",
+        },
+    },
+    GCVV: {
+        confidence: "medium",
+        note: "Tag meanings are from a single real integration (with a worked example) and are not verified against the Futurex module documentation.",
+        tags: {
+            AV: "Account number (PAN)",
+            CA: "Card verification key A (CVK-A)",
+            CB: "Card verification key B (CVK-B)",
+            FA: "Expiry date",
+            FB: "Service code",
+            FC: "Generated CVV/CVC value (response)",
+        },
+    },
 };
 
 /**
@@ -221,12 +269,16 @@ class ParseFuturexExcryptCommand extends Operation {
 
         this.name = "HSM Parse Futurex Command";
         this.module = "Payment";
-        this.description = "Paste a Futurex Excrypt command or response into the input field as text.<br><br><b>Scope:</b> This operation performs syntax parsing and labelling only. It splits the bracketed message into tag/value fields, resolves the command code to a name and category, and — for commands whose fields are documented — labels each parameter with its per-command meaning. It does not interpret, validate, or execute the command; field values and key material are not checked.<br><br><b>Syntax:</b> Excrypt messages are enclosed in <code>[</code> and <code>]</code>. Fields are semicolon-delimited. The command field is <code>AO</code> + a 4-character code, e.g. <code>AOECHO</code>. Every other field is a 2-character tag followed by its value; fields are <b>not positional</b>. Responses carry a <code>BB</code> status field (<code>Y</code> = success, otherwise an error code).<br><br><b>Command-scoped tags:</b> the same 2-character tag can mean different things in different commands, so parameter meanings are shown only for commands with a documented tag map, and are never assumed across commands.<br><br><b>Input:</b> raw Excrypt message text.";
-        this.inlineHelp = "<strong>Scope:</strong> syntax parser and labeller — fields are split, the command is named/categorised, and documented tags are labelled; nothing is validated or executed.<br><strong>Syntax:</strong> <code>[AO&lt;cmd&gt;;&lt;tag&gt;&lt;value&gt;;...]</code>; the <code>BB</code> field carries the response status.<br><strong>Input:</strong> raw Futurex Excrypt message text.";
+        this.description = "Paste a Futurex Excrypt command or response into the input field as text.<br><br><b>Scope:</b> This operation performs syntax parsing and labelling only. It splits the bracketed message into tag/value fields, resolves the command code to a name and category, labels each parameter with its per-command meaning (for commands whose fields are documented), flags fields that carry key material or cardholder data, and decodes the response status. It does not interpret, validate, or execute the command; field values and key material are not checked.<br><br><b>Syntax:</b> Excrypt messages are enclosed in <code>[</code> and <code>]</code>. Fields are semicolon-delimited. The command field is <code>AO</code> + a 4-character code, e.g. <code>AOECHO</code>. Every other field is a 2-character tag followed by its value; fields are <b>not positional</b>.<br><br><b>Status &amp; errors:</b> responses use a <code>BB</code> status field (<code>Y</code> = success) or a <code>GF</code> field (<code>GFY</code>/<code>GFN</code>); an error frame is the <code>ERRO</code> command carrying an error code and description.<br><br><b>Command-scoped tags:</b> the same 2-character tag can mean different things in different commands, so parameter meanings are shown only for commands with a documented tag map, and are never assumed across commands. Field <b>sensitivity</b> (key material / PAN / PIN) is flagged as a safe over-approximation regardless of command.<br><br><b>Input:</b> raw Excrypt message text.";
+        this.inlineHelp = "<strong>Scope:</strong> syntax parser and labeller — fields are split, the command is named/categorised, documented tags are labelled, sensitive fields are flagged, and the response status is decoded; nothing is validated or executed.<br><strong>Syntax:</strong> <code>[AO&lt;cmd&gt;;&lt;tag&gt;&lt;value&gt;;...]</code>.<br><strong>Input:</strong> raw Futurex Excrypt message text.";
         this.testDataSamples = [
             {
-                name: "Excrypt TPIN command (documented tags)",
+                name: "Excrypt TPIN command (documented tags, sensitive fields)",
                 input: "[AOTPIN;AW1;AK561237487695;AL1234567890ABCDEF;]"
+            },
+            {
+                name: "Excrypt EMVA (ARQC verify) command",
+                input: "[AOEMVA;FS0;KQ4123456789012345;KSABCD;]"
             },
             {
                 name: "Excrypt ECHO health check",
@@ -261,33 +313,46 @@ class ParseFuturexExcryptCommand extends Operation {
         const parsedFields = rawFields.map(parseField);
         const commandField = parsedFields.find(field => field.tag === "AO") || parsedFields[0];
         const commandCode = commandField.value.toUpperCase();
+        const isError = commandCode === "ERRO";
         const entry = COMMANDS[commandCode] || null;
-        const commandName = entry ? entry[0] : null;
+        const commandName = isError ? "Error response" : (entry ? entry[0] : null);
         const commandCategory = entry ? CATEGORY_LABELS[entry[1]] : null;
         const tagMap = Object.prototype.hasOwnProperty.call(COMMAND_TAGS, commandCode) ? COMMAND_TAGS[commandCode] : null;
 
         const notes = [];
         const unexpectedTags = [];
-        let status = null;
+        const sensitiveTags = [];
+        const errorInfo = {};
+        let responseStatus = null;
 
-        // Annotate each field. Tag meanings are only applied per command; the
-        // AO command field and the BB status field are framing-level and common.
+        // Annotate each field. Parameter meanings are applied per command (tags
+        // are command-scoped); the AO command field, the BB/GF status fields, and
+        // the ERRO error frame's AM/BB fields are framing-level.
         const fields = parsedFields.map(field => {
             const out = { raw: field.raw, tag: field.tag, value: field.value };
 
             if (field === commandField && field.tag === "AO") {
                 out.meaning = "Command code";
-                return out;
-            }
-            if (field.tag === "BB") {
+            } else if (isError && field.tag === "AM") {
+                out.meaning = "Error code";
+                errorInfo.code = field.value;
+            } else if (isError && field.tag === "BB") {
+                out.meaning = "Error description";
+                errorInfo.description = field.value;
+            } else if (field.tag === "BB") {
                 out.meaning = "Response status";
-                status = field.value.toUpperCase() === "Y" ?
+                responseStatus = field.value.toUpperCase() === "Y" ?
                     "success" :
                     `error (code ${field.value})`;
-                out.statusDescription = status;
-                return out;
-            }
-            if (tagMap && tagMap.rawPayload) {
+                out.statusDescription = responseStatus;
+            } else if (field.tag === "GF") {
+                out.meaning = "Response status";
+                const gf = field.value.toUpperCase();
+                responseStatus = gf === "Y" ?
+                    "success" :
+                    (gf === "N" ? "failure" : `status ${field.value}`);
+                out.statusDescription = responseStatus;
+            } else if (tagMap && tagMap.rawPayload) {
                 out.meaning = "Free-form payload (not a tagged parameter)";
             } else if (tagMap) {
                 if (Object.prototype.hasOwnProperty.call(tagMap.tags, field.tag)) {
@@ -298,13 +363,20 @@ class ParseFuturexExcryptCommand extends Operation {
                     unexpectedTags.push(field.tag);
                 }
             }
+
+            if (SENSITIVE_TAGS.has(field.tag)) {
+                out.sensitive = true;
+                sensitiveTags.push(field.tag);
+            }
             return out;
         });
 
         if (!openingDelimiterPresent || !closingDelimiterPresent) {
             notes.push("Message is missing one or both expected Excrypt outer delimiters.");
         }
-        if (!commandName) {
+        if (isError) {
+            notes.push("Error response frame (AOERRO): AM carries the error code, BB the description.");
+        } else if (!commandName) {
             notes.push("Command code was not recognised. Field tags are shown but not interpreted.");
         }
         if (tagMap && tagMap.confidence === "medium") {
@@ -315,6 +387,9 @@ class ParseFuturexExcryptCommand extends Operation {
         }
         if (unexpectedTags.length) {
             notes.push(`Tag(s) not documented for ${commandCode}: ${[...new Set(unexpectedTags)].join(", ")}. Parameter meanings are command-scoped, so these are left unlabelled.`);
+        }
+        if (sensitiveTags.length) {
+            notes.push(`Field(s) tagged ${[...new Set(sensitiveTags)].join(", ")} may carry key material or cardholder data — handle as sensitive.`);
         }
 
         const result = {
@@ -330,8 +405,11 @@ class ParseFuturexExcryptCommand extends Operation {
             commandCategory,
             fieldCount: fields.length,
         };
-        if (status !== null) {
-            result.responseStatus = status;
+        if (responseStatus !== null) {
+            result.responseStatus = responseStatus;
+        }
+        if (Object.keys(errorInfo).length) {
+            result.error = errorInfo;
         }
         result.notes = notes;
 
