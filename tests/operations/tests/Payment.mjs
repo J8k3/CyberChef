@@ -109,7 +109,8 @@ TestRegister.addTests([
                 {
                     raw: "AOGMAC",
                     tag: "AO",
-                    value: "GMAC"
+                    value: "GMAC",
+                    meaning: "Command code"
                 },
                 {
                     raw: "FS6",
@@ -125,6 +126,7 @@ TestRegister.addTests([
             commandFieldTag: "AO",
             commandCode: "GMAC",
             commandName: "Generate Message Authentication Code",
+            commandCategory: "MAC",
             fieldCount: 3,
             notes: []
         }, null, 4),
@@ -152,7 +154,8 @@ TestRegister.addTests([
                 {
                     raw: "AOVMAC",
                     tag: "AO",
-                    value: "VMAC"
+                    value: "VMAC",
+                    meaning: "Command code"
                 },
                 {
                     raw: "FS6",
@@ -168,9 +171,109 @@ TestRegister.addTests([
             commandFieldTag: "AO",
             commandCode: "VMAC",
             commandName: "Verify Message Authentication Code",
+            commandCategory: "MAC",
             fieldCount: 3,
             notes: [
                 "Message is missing one or both expected Excrypt outer delimiters."
+            ]
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "HSM Parse Futurex Command",
+                args: []
+            }
+        ]
+    },
+    {
+        name: "Parse Futurex Excrypt command: per-command tag labelling (TPIN)",
+        input: "[AOTPIN;AW1;AK561237487695;AL1234567890ABCDEF;]",
+        expectedOutput: JSON.stringify({
+            rawInput: "[AOTPIN;AW1;AK561237487695;AL1234567890ABCDEF;]",
+            openingDelimiterPresent: true,
+            closingDelimiterPresent: true,
+            body: "AOTPIN;AW1;AK561237487695;AL1234567890ABCDEF;",
+            rawFields: [
+                "AOTPIN",
+                "AW1",
+                "AK561237487695",
+                "AL1234567890ABCDEF"
+            ],
+            fields: [
+                {
+                    raw: "AOTPIN",
+                    tag: "AO",
+                    value: "TPIN",
+                    meaning: "Command code"
+                },
+                {
+                    raw: "AW1",
+                    tag: "AW",
+                    value: "1",
+                    meaning: "Mode / options flag (command-scoped)",
+                    permitted: true
+                },
+                {
+                    raw: "AK561237487695",
+                    tag: "AK",
+                    value: "561237487695",
+                    meaning: "Account number (PAN)",
+                    permitted: true
+                },
+                {
+                    raw: "AL1234567890ABCDEF",
+                    tag: "AL",
+                    value: "1234567890ABCDEF",
+                    meaning: "PIN block",
+                    permitted: true
+                }
+            ],
+            commandFieldTag: "AO",
+            commandCode: "TPIN",
+            commandName: "Translate PIN Block",
+            commandCategory: "PIN",
+            fieldCount: 4,
+            notes: []
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "HSM Parse Futurex Command",
+                args: []
+            }
+        ]
+    },
+    {
+        name: "Parse Futurex Excrypt command: ECHO free-form payload",
+        input: "[AOECHO;ping;]",
+        expectedOutput: JSON.stringify({
+            rawInput: "[AOECHO;ping;]",
+            openingDelimiterPresent: true,
+            closingDelimiterPresent: true,
+            body: "AOECHO;ping;",
+            rawFields: [
+                "AOECHO",
+                "ping"
+            ],
+            fields: [
+                {
+                    raw: "AOECHO",
+                    tag: "AO",
+                    value: "ECHO",
+                    meaning: "Command code"
+                },
+                {
+                    raw: "ping",
+                    tag: "PI",
+                    value: "ng",
+                    meaning: "Free-form payload (not a tagged parameter)"
+                }
+            ],
+            commandFieldTag: "AO",
+            commandCode: "ECHO",
+            commandName: "HSM Echo / Health Check",
+            commandCategory: "Key Management",
+            fieldCount: 2,
+            notes: [
+                "Connectivity / health check — the payload is arbitrary data echoed back, not tagged parameters."
             ]
         }, null, 4),
         recipeConfig: [
