@@ -219,6 +219,53 @@ TestRegister.addTests([
         ]
     },
     {
+        // Optional-block length is 2 HEX digits per X9.143: "0A" = 10 bytes, not
+        // 10 decimal. A decimal parse reads "0A" as 0 and drops the block.
+        name: "Parse TR-31 key block: hex-length optional block",
+        input: "D0026D0AB00E0100PB0A123456",
+        expectedOutput: JSON.stringify({
+            raw: "D0026D0AB00E0100PB0A123456",
+            fixedHeader: {
+                raw: "D0026D0AB00E0100",
+                versionId: "D",
+                versionDescription: "ANSI X9.24-2 (2017) — AES, Key Derivation Binding Method (current PCI standard)",
+                declaredBlockLength: 26,
+                keyUsage: "D0",
+                keyUsageDescription: "Symmetric Data Encryption Key (DEK)",
+                algorithm: "A",
+                algorithmDescription: "AES",
+                modeOfUse: "B",
+                modeOfUseDescription: "Both Encrypt and Decrypt / Both Generate and Verify",
+                keyVersionNumber: "00",
+                exportability: "E",
+                exportabilityDescription: "Exportable — can be wrapped under a KEK in a trusted key block",
+                optionalBlocksDeclared: 1,
+                reserved: "00"
+            },
+            compliance: [
+                "OK: Version D (AES Key Derivation) — current PCI-required format",
+                "NOTE: Exportable key — verify the wrapping KEK is a PCI-approved key block protection key"
+            ],
+            optionalBlocks: [
+                {
+                    id: "PB",
+                    idDescription: "Padding block",
+                    length: 10,
+                    value: "123456"
+                }
+            ],
+            bodyOffset: 26,
+            remainingBody: "",
+            notes: []
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "TR-31 Parse Key Block",
+                args: [true]
+            }
+        ]
+    },
+    {
         name: "Parse TR-34 key transport: split sections",
         input: "001730303030423930303100112233300030303034AABBCCDD",
         expectedOutput: JSON.stringify({
@@ -314,6 +361,19 @@ TestRegister.addTests([
             {
                 op: "Payment Calculate KCV",
                 args: ["Hex", "AES-CMAC (Zeros)", 6]
+            }
+        ]
+    },
+    {
+        // Custom length must be a whole number of bytes; a non-integer must be
+        // rejected rather than silently producing an empty key.
+        name: "Key Generate: rejects non-integer custom length",
+        input: "",
+        expectedOutput: "Custom length must be an integer between 1 and 256 bytes.",
+        recipeConfig: [
+            {
+                op: "Key Generate",
+                args: ["Custom random bytes (specify below)", 1.5, false, false]
             }
         ]
     },

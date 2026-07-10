@@ -221,7 +221,9 @@ class ParseTR31KeyBlock extends Operation {
 
         while (optionalBlocksParsed < optionalBlocksDeclared && offset + 4 <= keyBlock.length) {
             const blockId     = keyBlock.substring(offset, offset + 2);
-            const blockLength = parseInt(keyBlock.substring(offset + 2, offset + 4), 10);
+            // X9.143 encodes the optional block length as 2 HEX digits (byte count
+            // of the whole block), so e.g. "0A" is 16, not 10.
+            const blockLength = parseInt(keyBlock.substring(offset + 2, offset + 4), 16);
 
             if (!Number.isFinite(blockLength) || blockLength < 4) {
                 notes.push(`Stopped optional block parsing: invalid block length at offset ${offset}.`);
