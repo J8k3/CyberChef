@@ -37,22 +37,28 @@ jobs:
           # unexpected so we never push a half-resolved tree to master.
           unresolved=""
           for f in $(git diff --name-only --diff-filter=U); do
-            if [ "$f" = "README.md" ]; then
-              # The fork's README intentionally diverges (jacobmarks.com
-              # branding + extra demo links); keep our version.
-              git checkout --ours -- "$f"
-              git add -- "$f"
-              echo "Resolved $f -> kept fork version"
-            elif ! git cat-file -e "upstream/master:$f" 2>/dev/null \
-                 && git check-ignore -q --no-index "$f"; then
-              # Generated/gitignored file that upstream has deleted (e.g.
-              # tests/operations/index.mjs is now produced by grunt
-              # configTests); honour the deletion.
-              git rm -q -- "$f"
-              echo "Resolved $f -> honoured upstream deletion (generated file)"
-            else
-              unresolved="$unresolved $f"
-            fi
+            case "$f" in
+              README.md|AGENTS.md|.github/workflows/*)
+                # Files the fork intentionally diverges from upstream on: the
+                # README (jacobmarks.com branding + demo links), the fork's
+                # AGENTS.md, and these CI workflows. Always keep our version.
+                git checkout --ours -- "$f"
+                git add -- "$f"
+                echo "Resolved $f -> kept fork version"
+                ;;
+              *)
+                if ! git cat-file -e "upstream/master:$f" 2>/dev/null \
+                     && git check-ignore -q --no-index "$f"; then
+                  # Generated/gitignored file that upstream has deleted (e.g.
+                  # tests/operations/index.mjs is now produced by grunt
+                  # configTests); honour the deletion.
+                  git rm -q -- "$f"
+                  echo "Resolved $f -> honoured upstream deletion (generated file)"
+                else
+                  unresolved="$unresolved $f"
+                fi
+                ;;
+            esac
           done
 
           if [ -n "$unresolved" ]; then
@@ -61,9 +67,11 @@ jobs:
             exit 1
           fi
 
-          # Keep the fork's own workflow files instead of adopting upstream's.
-          git checkout HEAD -- .github/workflows/
-          git add -A .github/workflows/
+          # Also keep the fork's version of these fork-owned files when upstream
+          # changed them WITHOUT a conflict, so a clean upstream edit is not
+          # adopted silently.
+          git checkout HEAD -- README.md AGENTS.md .github/workflows/
+          git add -A README.md AGENTS.md .github/workflows/
 
           git commit --no-edit
           git push origin master
