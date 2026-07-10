@@ -4,22 +4,22 @@
  *
  * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
  *
- * @spec     Futurex Excrypt wire framing — Futurex HSM Reference Manual; corroborated by apc-hsm-proxy src/protocol/futurex.rs
+ * @spec     Futurex Excrypt wire framing — Futurex HSM Reference Manual; corroborated by a tested reference implementation of the protocol.
  * @rule     Messages are bracket-delimited ("[" … "]"); the command field is "AO" + a 4-char code; parameters are a 2-char code + value, semicolon-delimited and NON-positional; responses carry a BB status field ("Y" = success, else an error code). Parameter semantics are command-scoped — the same 2-char code can mean different things in different commands, so tag meanings are only annotated per command, never globally.
  * @status   externally-verified
- * @evidence apc-hsm-proxy futurex.rs unit tests (parse_valid_tpin_frame, parse_params_splits_semicolon_delimited, frame_response_produces_bracket_delimited_output).
+ * @evidence Round-trip unit tests over a tested reference implementation (valid TPIN frame parse, semicolon-delimited parameter splitting, bracket-delimited response framing).
  *
  * @spec     Futurex Excrypt command catalogue
  * @rule     Command codes, names, and categories reconciled against the HSM command registry (44 Excrypt commands) plus the Futurex Payment Integration Guide command set already carried by this op.
  * @status   cited-unverified
  *
  * @spec     Per-command tags — TPIN (AW/AX/BT/AL/AK) and ECHO
- * @rule     TPIN field meanings from the apc-hsm-proxy TPIN handler; ECHO payload is echoed data with no parameter tags (Futurex HSM Reference Manual).
+ * @rule     TPIN field meanings from a tested Excrypt TPIN handler implementation; ECHO payload is echoed data with no parameter tags (Futurex HSM Reference Manual).
  * @status   cited-unverified
- * @evidence apc-hsm-proxy src/handlers/futurex/tpin.rs and echo.rs.
+ * @evidence Tested reference TPIN and ECHO handler implementations.
  *
  * @spec     Per-command tags — key exchange (GPGS/TWKA/TRTP: FS, BG, AE, AP, CT)
- * @rule     Key-exchange tag meanings from the AWS public Excrypt sample (key_exchange/hsm/futurex/commands.py). SINGLE SOURCE — not verified against the Futurex TRM/firmware; surfaced with a "medium confidence" note in the output.
+ * @rule     Key-exchange tag meanings from a public Futurex key-exchange code sample. SINGLE SOURCE — not verified against the Futurex TRM/firmware; surfaced with a "medium confidence" note in the output.
  * @status   cited-unverified
  * @evidence Single-source public sample; a Futurex-experienced maintainer reviewed it as "generally correct" but could not confirm individual tag/enum semantics.
  *
@@ -29,7 +29,7 @@
  * @evidence github.com/kakubila/jpos-excrypt-interface (FxArqcService/DioFxService for EMVA; FxCavService/DioFxService for GCVV, with a worked request/response example).
  *
  * @spec     Sensitive-tag set (field masking) and error/status conventions
- * @rule     Tags flagged as carrying key material / PIN blocks / PANs / CVKs come from the jPOS Message PROTECTED_TAGS log-masking list — used only to flag a field sensitive (a safe over-approximation), never to assert its command-scoped meaning. Status conventions: BB ("Y" = success; proxy), GF ("GFY"/"GFN"; VirtuCrypt), and an ERRO error frame carrying AM (error code) + BB (description; jPOS).
+ * @rule     Tags flagged as carrying key material / PIN blocks / PANs / CVKs come from the jPOS Message PROTECTED_TAGS log-masking list — used only to flag a field sensitive (a safe over-approximation), never to assert its command-scoped meaning. Status conventions: BB ("Y" = success), GF ("GFY"/"GFN"; VirtuCrypt), and an ERRO error frame carrying AM (error code) + BB (description; jPOS).
  * @status   cited-unverified
  * @evidence github.com/kakubila/jpos-excrypt-interface Message.java (PROTECTED_TAGS, isError/getErrorCode/getErrorDescription).
  */
