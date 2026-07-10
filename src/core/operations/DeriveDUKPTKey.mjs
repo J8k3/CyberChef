@@ -7,6 +7,7 @@ import forge from "node-forge";
 import Operation from "../Operation.mjs";
 import OperationError from "../errors/OperationError.mjs";
 import { toHexFast } from "../lib/Hex.mjs";
+import { toByteString, xorBytes } from "../lib/PaymentUtils.mjs";
 
 const DUKPT_KEY_MASK = Uint8Array.from([0xC0, 0xC0, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0x00, 0xC0, 0xC0, 0xC0, 0xC0, 0x00, 0x00, 0x00, 0x00]);
 const VARIANT_MASKS = {
@@ -38,35 +39,6 @@ function parseHex(input, expectedLen, name) {
         throw new OperationError(`${name} must be ${expectedLen} bytes.`);
     }
     return out;
-}
-
-/**
- * XORs two equally sized byte arrays.
- *
- * @param {Uint8Array} a
- * @param {Uint8Array} b
- * @returns {Uint8Array}
- */
-function xorBytes(a, b) {
-    const out = new Uint8Array(a.length);
-    for (let i = 0; i < a.length; i++) {
-        out[i] = a[i] ^ b[i];
-    }
-    return out;
-}
-
-/**
- * Converts bytes to a forge-compatible binary string.
- *
- * @param {Uint8Array} bytes
- * @returns {string}
- */
-function toByteString(bytes) {
-    let s = "";
-    for (let i = 0; i < bytes.length; i++) {
-        s += String.fromCharCode(bytes[i]);
-    }
-    return s;
 }
 
 /**
@@ -261,6 +233,9 @@ class DeriveDUKPTKey extends Operation {
             }
             return ipekHex;
         }
+
+        if (!Object.prototype.hasOwnProperty.call(VARIANT_MASKS, variant))
+            throw new OperationError(`Unknown session key variant: ${variant}`);
 
         const sessionBase = deriveSessionBaseKey(ipek, ksn);
         const session = xorBytes(sessionBase, VARIANT_MASKS[variant]);

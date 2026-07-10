@@ -79,6 +79,8 @@ function buildScriptApdu(claHex, commandName, p1Hex, p2Hex, dataHex) {
     const p2 = normByte(p2Hex, "P2");
     const data = normData(dataHex);
     const lcDec = data.length / 2;
+    if (lcDec > 255)
+        throw new OperationError(`Command data is ${lcDec} bytes; a short-form APDU Lc holds at most 255.`);
     const lc = lcDec.toString(16).padStart(2, "0").toUpperCase();
     const apdu = `${cla}${ins}${p1}${p2}${lc}${data}`;
     return { cla, ins, commandName, p1, p2, lc, lcDec, data, apdu };
