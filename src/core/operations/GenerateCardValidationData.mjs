@@ -8,6 +8,13 @@ import { CVV_PROFILES, generateCardValidationData } from "../lib/CardValidation.
 
 /**
  * Generate card validation data operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     Visa CVV algorithm — as specified in Thales payShield PUGD0537-004 Rev A p.250 (CW) / p.303 (CY) and APC CardVerificationValue1/2
+ * @rule     One algorithm parameterised by service code selects the product: CVV1/CVC1 (magstripe) uses the card's real service code; CVV2/CVC2 (signature panel) uses '000'; iCVV / Chip CVC (EMV) uses '999'. CVV2 is CVV1 with service code '000'. PAN is variable length (Amex 15, up to 19) — never assume fixed 16.
+ * @status   externally-verified
+ * @evidence apc-crossval 2impl differential vs APC generate_card_validation_data (randomized PAN/expiry/service code, shared clear CVK, PAN lengths incl. 15), latest run 2026-07-08 all-match; APC cross-checks 2026-05-19 (CVV 703, CVV2 111)
  */
 class GenerateCardValidationData extends Operation {
 

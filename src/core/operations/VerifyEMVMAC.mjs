@@ -8,6 +8,12 @@ import { verifyEmvMac } from "../lib/EmvMac.mjs";
 
 /**
  * Verify EMV MAC operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     EMV 4.3 Book 2 — §9.2.3 (MAC Computation) / Annex A1.2
+ * @rule     Recomputes the issuer-script retail MAC (see EMV Generate MAC grounding) and compares against the expected value.
+ * @status   cited-unverified
  */
 class VerifyEMVMAC extends Operation {
     /**

@@ -8,6 +8,13 @@ import { generateVisaPvv } from "../lib/PaymentPinVerification.mjs";
 
 /**
  * Generate VISA PVV operation.
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     Visa PVV / ABA PVV method — Thales payShield PUGD0537-004 Rev A p.273 (DC), p.259 (CU); APC VisaPinVerificationValue
+ * @rule     TSP = rightmost 11 PAN digits excluding the check digit || PVKI || leftmost 4 PIN digits; TDES-encrypt under the PVK; decimalize two-pass (digits first, then A–F mapped to 0–5). The payShield manual calls this the "ABA PVV" method — the algorithm Visa adopted as its PVV.
+ * @status   externally-verified
+ * @evidence apc-crossval 2impl differential vs APC generate_pin_data VisaPinVerificationValue (randomized PAN/PVKI/PIN, shared clear PVK, PIN carried as ISO-0 block under a shared PEK), 2026-07-08 all-match; also APC verify_pin_data cross-checks 2026-05-19.
  */
 class GenerateVISAPVV extends Operation {
     /**

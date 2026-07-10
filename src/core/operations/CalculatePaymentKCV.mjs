@@ -11,6 +11,13 @@ import CMAC from "./CMAC.mjs";
 
 /**
  * Calculate payment KCV operation
+ *
+ * Grounding — one @spec group per load-bearing rule; see AGENTS.md "Spec grounding".
+ *
+ * @spec     ANSI X9.24-1 (legacy KCV) / CMAC KCV — as recorded in Thales payShield PUGD0537-004 Rev A (BU command) and APC KeyCheckValueAlgorithm
+ * @rule     KCV method by key class: DES/TDES = encrypt a zero block and take the leading bytes (X9.24-1 legacy, KCV version '00'); AES = CMAC of a zero block (KCV version '01'); HMAC = HMAC of a zero-length message. DES and AES methods match APC's stored KeyCheckValue exactly; TR-31/X9.143 'KC' optional blocks carry the version prefix.
+ * @status   externally-verified
+ * @evidence apc-hsm-proxy hsm_probe BU cross-check compares payShield-returned KCVs against APC KeyCheckValues; APC-computed KCV 08D7B4 for the documented TDES test key matches this op
  */
 class CalculatePaymentKCV extends Operation {
 
