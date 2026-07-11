@@ -10,8 +10,9 @@
  * @evidence Round-trip unit tests over a tested reference implementation (valid TPIN frame parse, semicolon-delimited parameter splitting, bracket-delimited response framing).
  *
  * @spec     Futurex Excrypt command catalogue
- * @rule     Command codes, names, and categories reconciled against the HSM command registry (44 Excrypt commands) plus the Futurex Payment Integration Guide command set already carried by this op.
+ * @rule     Command codes, names, and categories reconciled against the authoritative Futurex product documentation (docs.futurex.com Host API command tables) and the Futurex Payment Integration Guide command set. Command-code EXISTENCE for the general-purpose set is additionally validated against a real device configuration report's enabled-command list; names come from the documentation, never guessed. Categories are descriptive metadata, assigned by function.
  * @status   cited-unverified
+ * @evidence docs.futurex.com command-reference tables (code -> description); a device Configuration Report enabled-command permission list corroborates existence.
  *
  * @spec     Per-command tags — TPIN (AW/AX/BT/AL/AK) and ECHO
  * @rule     TPIN field meanings from a tested Excrypt TPIN handler implementation; ECHO payload is echoed data with no parameter tags (Futurex HSM Reference Manual).
@@ -62,9 +63,14 @@ const CATEGORY_LABELS = {
 // Integration Guide set and the HSM command registry (which adds the health-
 // check, key-generation, key-table, and TR-34 key-exchange commands).
 const COMMANDS = {
+    ADPK: ["PKI Decrypt Trusted Public Key", "KEY"],
+    APFP: ["Generate PKI Public Key from Private Key", "KEY"],
     ASGC: ["Generate Self-Signed CA Certificate", "KEY"],
     ASSR: ["Sign a CSR / Issue Certificate", "KEY"],
+    ASYL: ["Load asymmetric key into key table", "KEY"],
     ASYR: ["Generate Certificate Signing Request", "KEY"],
+    ASYS: ["Generate signature using PKI private key", "KEY"],
+    ASYV: ["Verify a Signature Using a Public Key", "KEY"],
     AVPC: ["Add / Trust Public Certificate", "KEY"],
     CAAV: ["Calculate Account Holder Authentication Value", "CVV"],
     DAPT: ["Decrypt Apple Pay Token", "ENC"],
@@ -87,6 +93,7 @@ const COMMANDS = {
     EMVT: ["EMV Translate Sensitive Data", "ENC"],
     GCAV: ["Generate CAVV", "CVV"],
     GCIV: ["Generate a CVC3 IV", "CVV"],
+    GCKD: ["Derive Key from Shared Secret", "KEY"],
     GCSC: ["Generate American Express CSC Value", "CVV"],
     GCVC: ["Generate CVC and CVC2", "CVV"],
     GCVV: ["Generate CVV or CVC Value", "CVV"],
@@ -96,7 +103,6 @@ const COMMANDS = {
     GECC: ["Generate ECC Key Pair", "KEY"],
     GEMC: ["Generate EMV ICC Certificate", "KEY"],
     GEMQ: ["Generate EMV Issuer CSR", "KEY"],
-    GCKD: ["Derive Key from Shared Secret", "KEY"],
     GHMC: ["Generate HCE Mobile Cryptogram", "EMV"],
     GHMD: ["Generate HCE Magstripe Verification Value", "CVV"],
     GHMK: ["Generate HCE Mobile Keys", "KEY"],
@@ -108,26 +114,50 @@ const COMMANDS = {
     GOFC: ["Generate Offset of Clear PIN", "PIN"],
     GOFF: ["Generate PIN Offset Value", "PIN"],
     GOPC: ["Generate Offset and EMV PIN Change", "PIN"],
+    GPED: ["General Purpose Encryption and Decryption", "ENC"],
+    GPGC: ["General-purpose generate cryptogram from key slot", "KEY"],
     GPGS: ["General Purpose Generate Symmetric Key", "KEY"],
     GPIN: ["Generate PIN", "PIN"],
+    GPKA: ["General-purpose key add", "KEY"],
+    GPKD: ["General-purpose key slot delete/clear", "KEY"],
+    GPKM: ["Retrieve key table information", "KEY"],
     GPKR: ["General Purpose Key Settings Get", "KEY"],
+    GPKS: ["General-purpose key settings get/change", "KEY"],
+    GPKU: ["General-purpose key unwrap (unrestricted)", "KEY"],
+    GPKW: ["General-purpose key wrap (unrestricted)", "KEY"],
     GPMC: ["General Purpose Symmetric MAC", "MAC"],
     GPRW: ["Get Public RSA Wrapping Key", "KEY"],
+    GPSD: ["General-purpose Symmetric Decrypt", "ENC"],
+    GPSE: ["General-purpose Symmetric Encrypt", "ENC"],
+    GPSR: ["General-purpose RSA encrypt/decrypt or sign/verify with recovery", "KEY"],
+    GPSV: ["General-purpose data sign and verify", "KEY"],
+    GPUK: ["General-purpose key unwrap (preserves key usage)", "KEY"],
+    GPWK: ["General-purpose key wrap (preserves key usage)", "KEY"],
     GRSA: ["Generate RSA Key Pair", "KEY"],
     GVDC: ["Generate Dynamic CVV", "CVV"],
+    HASH: ["Retrieve device serial", "KEY"],
     HMAC: ["Generate MAC Hash", "MAC"],
     KMAP: ["Bitmap Key Table", "KEY"],
+    LRSA: ["Load key into RSA Key Table", "KEY"],
     OFPC: ["Perform EMV PIN Change Using Offset", "PIN"],
     ONGQ: ["Translate PAN to a Different Trusted Public Key", "ENC"],
     PEDK: ["Key Request (TR-34 Remote Key Loading)", "KEY"],
+    PRMD: ["Retrieve HSM restrictions", "KEY"],
+    RAND: ["Generate random data", "KEY"],
+    RDPK: ["Get Clear Public Key from Cryptogram", "KEY"],
     RKHM: ["Generate or Verify HMAC", "MAC"],
+    RPFP: ["Get public components from RSA private key", "KEY"],
     RPIN: ["PIN Change and Optional PIN Verification", "PIN"],
-    RSAR: ["Import Key Under RSA", "KEY"],
+    RSAC: ["General-purpose convert clear DER encoded RSA key to major key cryptogram", "KEY"],
+    RSAR: ["Generate PKCS #10 Certificate Request", "KEY"],
+    RSAS: ["Generate a Signature Using a RSA Private Key", "KEY"],
     RVPC: ["Receive / Verify Public Certificate", "KEY"],
     SDDH: ["ECDH Shared-Secret Derivation", "KEY"],
     SSAD: ["Sign Static Authentication Data with Issuer Private Key", "KEY"],
+    STAT: ["HSM statistics", "KEY"],
     TCDK: ["Translate Cardholder Data Using DUKPT", "P2PE"],
     TDKD: ["Translate Cardholder Data Using DUKPT and Symmetric Keys", "P2PE"],
+    TIME: ["Set time", "KEY"],
     TKDR: ["Translate DUKPT Data to RSA with Specific Output Data", "P2PE"],
     TPCP: ["Translate Encrypted PIN Coordinates to a PEK", "PIN"],
     TPDD: ["Translate an Encrypted ANSI PIN Block", "PIN"],
