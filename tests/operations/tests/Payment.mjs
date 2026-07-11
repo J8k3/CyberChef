@@ -296,7 +296,7 @@ TestRegister.addTests([
             fieldCount: 4,
             notes: [
                 "Parameter tag meanings for this command come from a single public source and are not verified against the Futurex module documentation — treat as a guide.",
-                "Tag meanings are from a single real integration (self-documenting, EMV Book 2-cited) and are not verified against the Futurex module documentation.",
+                "Tag meanings are corroborated by two independent public integrations (self-documenting, EMV Book 2-cited) and are not verified against the Futurex module documentation.",
                 "Field(s) tagged KQ may carry key material or cardholder data — handle as sensitive."
             ]
         }, null, 4),

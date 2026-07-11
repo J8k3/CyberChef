@@ -24,9 +24,9 @@
  * @evidence Single-source public sample; a Futurex-experienced maintainer reviewed it as "generally correct" but could not confirm individual tag/enum semantics.
  *
  * @spec     Per-command tags — EMVA (ARQC verify) and GCVV (generate CVV)
- * @rule     EMVA (FS/KM/CH/KP/KQ/KR/KS/KT/BO/BJ/KU) and GCVV (AV/CA/CB/FA/FB/FC) field meanings from a real jPOS Excrypt integration whose builders self-document each tag (EMVA's CH cites EMV Book 2 Annex A1.4.1). SINGLE SOURCE — medium confidence.
+ * @rule     EMVA (FS/KM/CH/KP/KQ/KR/KS/KT/BO/BJ/KU) field meanings are corroborated by two independent public Excrypt integrations; GCVV (AV/CA/CB/FA/FB/FC) is single-source. Both self-document their tags (EMVA's CH cites EMV Book 2 Annex A1.4.1). Not verified against the Futurex TRM — medium confidence. (An "NP" tag also appears in a live EMVA request but its meaning is unconfirmed, so it is left unlabelled/flagged rather than guessed.)
  * @status   cited-unverified
- * @evidence github.com/kakubila/jpos-excrypt-interface (FxArqcService/DioFxService for EMVA; FxCavService/DioFxService for GCVV, with a worked request/response example).
+ * @evidence EMVA: github.com/kakubila/jpos-excrypt-interface (FxArqcService) plus a live EMVA request script (github.com/RicardoVercetti/RandomCodeScraps Python/Scripts/emva_command.py — FS0/KM1/KP/KQ/KR/KS(=ATC)/KT(=CDOL)/BO, "BBY" success response). GCVV: github.com/kakubila/jpos-excrypt-interface (FxCavService, with a worked example).
  *
  * @spec     Sensitive-tag set (field masking) and error/status conventions
  * @rule     Tags flagged as carrying key material / PIN blocks / PANs / CVKs come from the jPOS Message PROTECTED_TAGS log-masking list — used only to flag a field sensitive (a safe over-approximation), never to assert its command-scoped meaning. Status conventions: BB ("Y" = success), GF ("GFY"/"GFN"; VirtuCrypt), and an ERRO error frame carrying AM (error code) + BB (description; jPOS).
@@ -212,7 +212,7 @@ const COMMAND_TAGS = {
     },
     EMVA: {
         confidence: "medium",
-        note: "Tag meanings are from a single real integration (self-documenting, EMV Book 2-cited) and are not verified against the Futurex module documentation.",
+        note: "Tag meanings are corroborated by two independent public integrations (self-documenting, EMV Book 2-cited) and are not verified against the Futurex module documentation.",
         tags: {
             FS: "Mode (0, 1, or 3)",
             KM: "Key derivation method (e.g. 3 = Mastercard M/Chip SKD)",
