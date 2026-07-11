@@ -109,7 +109,8 @@ TestRegister.addTests([
                 {
                     raw: "AOGMAC",
                     tag: "AO",
-                    value: "GMAC"
+                    value: "GMAC",
+                    meaning: "Command code"
                 },
                 {
                     raw: "FS6",
@@ -125,6 +126,7 @@ TestRegister.addTests([
             commandFieldTag: "AO",
             commandCode: "GMAC",
             commandName: "Generate Message Authentication Code",
+            commandCategory: "MAC",
             fieldCount: 3,
             notes: []
         }, null, 4),
@@ -152,7 +154,8 @@ TestRegister.addTests([
                 {
                     raw: "AOVMAC",
                     tag: "AO",
-                    value: "VMAC"
+                    value: "VMAC",
+                    meaning: "Command code"
                 },
                 {
                     raw: "FS6",
@@ -168,9 +171,367 @@ TestRegister.addTests([
             commandFieldTag: "AO",
             commandCode: "VMAC",
             commandName: "Verify Message Authentication Code",
+            commandCategory: "MAC",
             fieldCount: 3,
             notes: [
                 "Message is missing one or both expected Excrypt outer delimiters."
+            ]
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "HSM Parse Futurex Command",
+                args: []
+            }
+        ]
+    },
+    {
+        name: "Parse Futurex Excrypt command: per-command tag labelling (TPIN)",
+        input: "[AOTPIN;AW1;AK561237487695;AL1234567890ABCDEF;]",
+        expectedOutput: JSON.stringify({
+            rawInput: "[AOTPIN;AW1;AK561237487695;AL1234567890ABCDEF;]",
+            openingDelimiterPresent: true,
+            closingDelimiterPresent: true,
+            body: "AOTPIN;AW1;AK561237487695;AL1234567890ABCDEF;",
+            rawFields: [
+                "AOTPIN",
+                "AW1",
+                "AK561237487695",
+                "AL1234567890ABCDEF"
+            ],
+            fields: [
+                {
+                    raw: "AOTPIN",
+                    tag: "AO",
+                    value: "TPIN",
+                    meaning: "Command code"
+                },
+                {
+                    raw: "AW1",
+                    tag: "AW",
+                    value: "1",
+                    meaning: "Mode / options flag (command-scoped)",
+                    permitted: true
+                },
+                {
+                    raw: "AK561237487695",
+                    tag: "AK",
+                    value: "561237487695",
+                    meaning: "Account number (PAN)",
+                    permitted: true,
+                    sensitive: true
+                },
+                {
+                    raw: "AL1234567890ABCDEF",
+                    tag: "AL",
+                    value: "1234567890ABCDEF",
+                    meaning: "PIN block",
+                    permitted: true,
+                    sensitive: true
+                }
+            ],
+            commandFieldTag: "AO",
+            commandCode: "TPIN",
+            commandName: "Translate PIN Block",
+            commandCategory: "PIN",
+            fieldCount: 4,
+            notes: [
+                "Field(s) tagged AK, AL may carry key material or cardholder data — handle as sensitive."
+            ]
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "HSM Parse Futurex Command",
+                args: []
+            }
+        ]
+    },
+    {
+        name: "Parse Futurex Excrypt command: EMVA (ARQC verify) tags and sensitivity",
+        input: "[AOEMVA;FS0;KQ4123456789012345;KS0001;]",
+        expectedOutput: JSON.stringify({
+            rawInput: "[AOEMVA;FS0;KQ4123456789012345;KS0001;]",
+            openingDelimiterPresent: true,
+            closingDelimiterPresent: true,
+            body: "AOEMVA;FS0;KQ4123456789012345;KS0001;",
+            rawFields: [
+                "AOEMVA",
+                "FS0",
+                "KQ4123456789012345",
+                "KS0001"
+            ],
+            fields: [
+                {
+                    raw: "AOEMVA",
+                    tag: "AO",
+                    value: "EMVA",
+                    meaning: "Command code"
+                },
+                {
+                    raw: "FS0",
+                    tag: "FS",
+                    value: "0",
+                    meaning: "Mode (0, 1, or 3)",
+                    permitted: true
+                },
+                {
+                    raw: "KQ4123456789012345",
+                    tag: "KQ",
+                    value: "4123456789012345",
+                    meaning: "Account number (PAN)",
+                    permitted: true,
+                    sensitive: true
+                },
+                {
+                    raw: "KS0001",
+                    tag: "KS",
+                    value: "0001",
+                    meaning: "Application Transaction Counter (ATC)",
+                    permitted: true
+                }
+            ],
+            commandFieldTag: "AO",
+            commandCode: "EMVA",
+            commandName: "Verify ARQC and Optionally Generate ARPC",
+            commandCategory: "EMV / ARQC",
+            fieldCount: 4,
+            notes: [
+                "Parameter tag meanings for this command come from a single public source and are not verified against the Futurex module documentation — treat as a guide.",
+                "Tag meanings are corroborated by two independent public integrations (self-documenting, EMV Book 2-cited) and are not verified against the Futurex module documentation.",
+                "Field(s) tagged KQ may carry key material or cardholder data — handle as sensitive."
+            ]
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "HSM Parse Futurex Command",
+                args: []
+            }
+        ]
+    },
+    {
+        name: "Parse Futurex Excrypt command: GCVV card-validation tags",
+        input: "[AOGCVV;AV5081470082593506;FA4912;FB000;]",
+        expectedOutput: JSON.stringify({
+            rawInput: "[AOGCVV;AV5081470082593506;FA4912;FB000;]",
+            openingDelimiterPresent: true,
+            closingDelimiterPresent: true,
+            body: "AOGCVV;AV5081470082593506;FA4912;FB000;",
+            rawFields: [
+                "AOGCVV",
+                "AV5081470082593506",
+                "FA4912",
+                "FB000"
+            ],
+            fields: [
+                {
+                    raw: "AOGCVV",
+                    tag: "AO",
+                    value: "GCVV",
+                    meaning: "Command code"
+                },
+                {
+                    raw: "AV5081470082593506",
+                    tag: "AV",
+                    value: "5081470082593506",
+                    meaning: "Account number (PAN)",
+                    permitted: true,
+                    sensitive: true
+                },
+                {
+                    raw: "FA4912",
+                    tag: "FA",
+                    value: "4912",
+                    meaning: "Expiry date",
+                    permitted: true,
+                    sensitive: true
+                },
+                {
+                    raw: "FB000",
+                    tag: "FB",
+                    value: "000",
+                    meaning: "Service code",
+                    permitted: true
+                }
+            ],
+            commandFieldTag: "AO",
+            commandCode: "GCVV",
+            commandName: "Generate CVV or CVC Value",
+            commandCategory: "Card Validation (CVV/CVC)",
+            fieldCount: 4,
+            notes: [
+                "Parameter tag meanings for this command come from a single public source and are not verified against the Futurex module documentation — treat as a guide.",
+                "Tag meanings are from a single real integration (with a worked example) and are not verified against the Futurex module documentation.",
+                "Field(s) tagged AV, FA may carry key material or cardholder data — handle as sensitive."
+            ]
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "HSM Parse Futurex Command",
+                args: []
+            }
+        ]
+    },
+    {
+        name: "Parse Futurex Excrypt command: ERRO error frame",
+        input: "[AOERRO;AM68;]",
+        expectedOutput: JSON.stringify({
+            rawInput: "[AOERRO;AM68;]",
+            openingDelimiterPresent: true,
+            closingDelimiterPresent: true,
+            body: "AOERRO;AM68;",
+            rawFields: [
+                "AOERRO",
+                "AM68"
+            ],
+            fields: [
+                {
+                    raw: "AOERRO",
+                    tag: "AO",
+                    value: "ERRO",
+                    meaning: "Command code"
+                },
+                {
+                    raw: "AM68",
+                    tag: "AM",
+                    value: "68",
+                    meaning: "Error code"
+                }
+            ],
+            commandFieldTag: "AO",
+            commandCode: "ERRO",
+            commandName: "Error response",
+            commandCategory: null,
+            fieldCount: 2,
+            error: {
+                code: "68"
+            },
+            notes: [
+                "Error response frame (AOERRO): AM carries the error code, BB the description."
+            ]
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "HSM Parse Futurex Command",
+                args: []
+            }
+        ]
+    },
+    {
+        name: "Parse Futurex Excrypt command: SDDH key-exchange enum decoding",
+        input: "[AOSDDH;FS6;CT6;RG4;KM1;RCpriv;RDpub;]",
+        expectedOutput: JSON.stringify({
+            rawInput: "[AOSDDH;FS6;CT6;RG4;KM1;RCpriv;RDpub;]",
+            openingDelimiterPresent: true,
+            closingDelimiterPresent: true,
+            body: "AOSDDH;FS6;CT6;RG4;KM1;RCpriv;RDpub;",
+            rawFields: [
+                "AOSDDH",
+                "FS6",
+                "CT6",
+                "RG4",
+                "KM1",
+                "RCpriv",
+                "RDpub"
+            ],
+            fields: [
+                {
+                    raw: "AOSDDH",
+                    tag: "AO",
+                    value: "SDDH",
+                    meaning: "Command code"
+                },
+                {
+                    raw: "FS6",
+                    tag: "FS",
+                    value: "6",
+                    meaning: "Major / master-key selector (FS6 = PMK)",
+                    permitted: true
+                },
+                {
+                    raw: "CT6",
+                    tag: "CT",
+                    value: "6",
+                    meaning: "Derived key algorithm (2=TDES2, 3=TDES3, 4=AES128, 5=AES192, 6=AES256)",
+                    permitted: true
+                },
+                {
+                    raw: "RG4",
+                    tag: "RG",
+                    value: "4",
+                    meaning: "Hash algorithm (4=SHA-256, 5=SHA-384, 6=SHA-512)",
+                    permitted: true
+                },
+                {
+                    raw: "KM1",
+                    tag: "KM",
+                    value: "1",
+                    meaning: "Key derivation function (0=NIST SP800-56C, 1=ANSI X9.63)",
+                    permitted: true
+                },
+                {
+                    raw: "RCpriv",
+                    tag: "RC",
+                    value: "priv",
+                    meaning: "Private key",
+                    permitted: true
+                },
+                {
+                    raw: "RDpub",
+                    tag: "RD",
+                    value: "pub",
+                    meaning: "Trusted public key",
+                    permitted: true
+                }
+            ],
+            commandFieldTag: "AO",
+            commandCode: "SDDH",
+            commandName: "ECDH Shared-Secret Derivation",
+            commandCategory: "Key Management",
+            fieldCount: 7,
+            notes: [
+                "Parameter tag meanings for this command come from a single public source and are not verified against the Futurex module documentation — treat as a guide.",
+                "ECDH shared-secret derivation. Tag meanings are from a single public source and are not verified against the Futurex module documentation."
+            ]
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "HSM Parse Futurex Command",
+                args: []
+            }
+        ]
+    },
+    {
+        name: "Parse Futurex Excrypt command: ECHO free-form payload",
+        input: "[AOECHO;ping;]",
+        expectedOutput: JSON.stringify({
+            rawInput: "[AOECHO;ping;]",
+            openingDelimiterPresent: true,
+            closingDelimiterPresent: true,
+            body: "AOECHO;ping;",
+            rawFields: [
+                "AOECHO",
+                "ping"
+            ],
+            fields: [
+                {
+                    raw: "AOECHO",
+                    tag: "AO",
+                    value: "ECHO",
+                    meaning: "Command code"
+                },
+                {
+                    raw: "ping",
+                    tag: "PI",
+                    value: "ng",
+                    meaning: "Free-form payload (not a tagged parameter)"
+                }
+            ],
+            commandFieldTag: "AO",
+            commandCode: "ECHO",
+            commandName: "HSM Echo / Health Check",
+            commandCategory: "Key Management",
+            fieldCount: 2,
+            notes: [
+                "Connectivity / health check — the payload is arbitrary data echoed back, not tagged parameters."
             ]
         }, null, 4),
         recipeConfig: [
