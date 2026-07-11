@@ -416,6 +416,90 @@ TestRegister.addTests([
         ]
     },
     {
+        name: "Parse Futurex Excrypt command: SDDH key-exchange enum decoding",
+        input: "[AOSDDH;FS6;CT6;RG4;KM1;RCpriv;RDpub;]",
+        expectedOutput: JSON.stringify({
+            rawInput: "[AOSDDH;FS6;CT6;RG4;KM1;RCpriv;RDpub;]",
+            openingDelimiterPresent: true,
+            closingDelimiterPresent: true,
+            body: "AOSDDH;FS6;CT6;RG4;KM1;RCpriv;RDpub;",
+            rawFields: [
+                "AOSDDH",
+                "FS6",
+                "CT6",
+                "RG4",
+                "KM1",
+                "RCpriv",
+                "RDpub"
+            ],
+            fields: [
+                {
+                    raw: "AOSDDH",
+                    tag: "AO",
+                    value: "SDDH",
+                    meaning: "Command code"
+                },
+                {
+                    raw: "FS6",
+                    tag: "FS",
+                    value: "6",
+                    meaning: "Major / master-key selector (FS6 = PMK)",
+                    permitted: true
+                },
+                {
+                    raw: "CT6",
+                    tag: "CT",
+                    value: "6",
+                    meaning: "Derived key algorithm (2=TDES2, 3=TDES3, 4=AES128, 5=AES192, 6=AES256)",
+                    permitted: true
+                },
+                {
+                    raw: "RG4",
+                    tag: "RG",
+                    value: "4",
+                    meaning: "Hash algorithm (4=SHA-256, 5=SHA-384, 6=SHA-512)",
+                    permitted: true
+                },
+                {
+                    raw: "KM1",
+                    tag: "KM",
+                    value: "1",
+                    meaning: "Key derivation function (0=NIST SP800-56C, 1=ANSI X9.63)",
+                    permitted: true
+                },
+                {
+                    raw: "RCpriv",
+                    tag: "RC",
+                    value: "priv",
+                    meaning: "Private key",
+                    permitted: true
+                },
+                {
+                    raw: "RDpub",
+                    tag: "RD",
+                    value: "pub",
+                    meaning: "Trusted public key",
+                    permitted: true
+                }
+            ],
+            commandFieldTag: "AO",
+            commandCode: "SDDH",
+            commandName: "ECDH Shared-Secret Derivation",
+            commandCategory: "Key Management",
+            fieldCount: 7,
+            notes: [
+                "Parameter tag meanings for this command come from a single public source and are not verified against the Futurex module documentation — treat as a guide.",
+                "ECDH shared-secret derivation. Tag meanings are from a single public source and are not verified against the Futurex module documentation."
+            ]
+        }, null, 4),
+        recipeConfig: [
+            {
+                op: "HSM Parse Futurex Command",
+                args: []
+            }
+        ]
+    },
+    {
         name: "Parse Futurex Excrypt command: ECHO free-form payload",
         input: "[AOECHO;ping;]",
         expectedOutput: JSON.stringify({

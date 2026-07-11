@@ -18,8 +18,8 @@
  * @status   cited-unverified
  * @evidence Tested reference TPIN and ECHO handler implementations.
  *
- * @spec     Per-command tags — key exchange (GPGS/TWKA/TRTP: FS, BG, AE, AP, CT)
- * @rule     Key-exchange tag meanings from a public Futurex key-exchange code sample. SINGLE SOURCE — not verified against the Futurex TRM/firmware; surfaced with a "medium confidence" note in the output.
+ * @spec     Per-command tags — asymmetric key exchange (GPGS/TWKA/TRTP/GECC/GRSA/AVPC/SDDH/ASGC/ASYR/ASSR)
+ * @rule     Command set and tag meanings from a public Futurex key-exchange code sample whose function signatures name each parameter and whose enum tables (CT/RA/RB/CZ/RG/KM) decode the tag values. SINGLE SOURCE — not verified against the Futurex TRM/firmware; surfaced with a "medium confidence" note. Only tags bound to a named parameter/response token or an enum table are labelled; opaque certificate-construction constants are left flagged rather than guessed. Note the command-scoped RA (ECC curve in GECC vs RSA public exponent in GRSA).
  * @status   cited-unverified
  * @evidence Single-source public sample; a Futurex-experienced maintainer reviewed it as "generally correct" but could not confirm individual tag/enum semantics.
  *
@@ -62,6 +62,10 @@ const CATEGORY_LABELS = {
 // Integration Guide set and the HSM command registry (which adds the health-
 // check, key-generation, key-table, and TR-34 key-exchange commands).
 const COMMANDS = {
+    ASGC: ["Generate Self-Signed CA Certificate", "KEY"],
+    ASSR: ["Sign a CSR / Issue Certificate", "KEY"],
+    ASYR: ["Generate Certificate Signing Request", "KEY"],
+    AVPC: ["Add / Trust Public Certificate", "KEY"],
     CAAV: ["Calculate Account Holder Authentication Value", "CVV"],
     DAPT: ["Decrypt Apple Pay Token", "ENC"],
     DCDK: ["Decrypt Cardholder Data Using DUKPT", "P2PE"],
@@ -119,7 +123,6 @@ const COMMANDS = {
     RKHM: ["Generate or Verify HMAC", "MAC"],
     RPIN: ["PIN Change and Optional PIN Verification", "PIN"],
     RSAR: ["Import Key Under RSA", "KEY"],
-    AVPC: ["Add / Trust Public Certificate", "KEY"],
     RVPC: ["Receive / Verify Public Certificate", "KEY"],
     SDDH: ["ECDH Shared-Secret Derivation", "KEY"],
     SSAD: ["Sign Static Authentication Data with Issuer Private Key", "KEY"],
@@ -205,9 +208,98 @@ const COMMAND_TAGS = {
         confidence: "medium",
         note: "Builds a TR-34 export payload. Tag meanings are from a single public source and are not verified against the Futurex module documentation.",
         tags: {
-            FS: "Major / master-key selector",
-            BG: "Wrapped key block",
+            FS: "Major / master-key selector (FS6 = PMK)",
+            CT: "Symmetric algorithm (2=TDES2, 3=TDES3, 4=AES128, 5=AES192, 6=AES256)",
+            RV: "KDH (sender) certificate, DER",
+            RC: "KDH (sender) wrapped private key",
+            SJ: "KRD (receiver) certificate on input; TR-34 key-transport payload on output",
+            SA: "KRD certificate-authority trusted public key (TPK)",
+            BG: "Transport key being exported (wrapped key block)",
+            BJ: "Nonce",
             AP: "Key-encryption key (KEK)",
+        },
+    },
+    GECC: {
+        confidence: "medium",
+        note: "Generates an ECC key pair. Tag meanings are from a single public source and are not verified against the Futurex module documentation.",
+        tags: {
+            RA: "ECC curve (2=NIST P-256, 3=P-384, 4=P-521)",
+            CZ: "Key usage / mode of use (X=key agreement, V=verify, G=sign)",
+            RC: "Wrapped private key (output)",
+            SD: "Trusted public key (output)",
+            RD: "Clear public key (output)",
+        },
+    },
+    GRSA: {
+        confidence: "medium",
+        note: "Generates an RSA key pair. Tag meanings are from a single public source and are not verified against the Futurex module documentation. RA is command-scoped here — the RSA public exponent, not an ECC curve.",
+        tags: {
+            RB: "RSA key length in bits (2048 / 3072 / 4096)",
+            RA: "RSA public exponent (hex; 10001 = 65537)",
+            CZ: "Key usage / mode of use (X=key agreement, V=verify, G=sign)",
+            RC: "Wrapped private key (output)",
+            SD: "Trusted public key (output)",
+            RD: "Clear public key (output)",
+        },
+    },
+    AVPC: {
+        confidence: "medium",
+        note: "Trusts / validates a public certificate. Tag meanings are from a single public source and are not verified against the Futurex module documentation.",
+        tags: {
+            FS: "Major / master-key selector (FS6 = PMK)",
+            CZ: "Certificate handling (X = validate against a CA, V = trust / verify only)",
+            SA: "Certificate-authority trusted public key (TPK)",
+            RV: "Certificate to trust, DER",
+            RD: "Certificate trusted public key (output)",
+        },
+    },
+    SDDH: {
+        confidence: "medium",
+        note: "ECDH shared-secret derivation. Tag meanings are from a single public source and are not verified against the Futurex module documentation.",
+        tags: {
+            FS: "Major / master-key selector (FS6 = PMK)",
+            CT: "Derived key algorithm (2=TDES2, 3=TDES3, 4=AES128, 5=AES192, 6=AES256)",
+            RG: "Hash algorithm (4=SHA-256, 5=SHA-384, 6=SHA-512)",
+            KM: "Key derivation function (0=NIST SP800-56C, 1=ANSI X9.63)",
+            AK: "Shared info / KDF context",
+            RC: "Private key",
+            RD: "Trusted public key",
+            BG: "Derived key (output)",
+        },
+    },
+    ASGC: {
+        confidence: "medium",
+        note: "Generates a self-signed CA certificate. Tag meanings are from a single public source and are not verified against the Futurex module documentation.",
+        tags: {
+            FS: "Major / master-key selector (FS6 = PMK)",
+            BF: "Certificate validity date (YYYYMMDD)",
+            KU: "X.509 key-usage list (e.g. digitalSignature,keyCertSign)",
+            BC: "X.509 basic constraints (e.g. CA:TRUE)",
+            RC: "Wrapped private key",
+            RV: "Certificate, DER (output)",
+        },
+    },
+    ASYR: {
+        confidence: "medium",
+        note: "Generates a certificate signing request (CSR). Tag meanings are from a single public source and are not verified against the Futurex module documentation.",
+        tags: {
+            FS: "Major / master-key selector (FS6 = PMK)",
+            KU: "X.509 key-usage list",
+            RC: "Wrapped private key",
+            RU: "Certificate signing request, PKCS#10 (output)",
+        },
+    },
+    ASSR: {
+        confidence: "medium",
+        note: "Signs a CSR to issue a certificate. Tag meanings are from a single public source and are not verified against the Futurex module documentation.",
+        tags: {
+            FS: "Major / master-key selector (FS6 = PMK)",
+            BF: "Certificate validity date (YYYYMMDD)",
+            KU: "X.509 key-usage list",
+            RU: "Certificate signing request to sign (input)",
+            RH: "Issuing CA certificate, DER",
+            RC: "Issuing CA wrapped private key",
+            RV: "Signed certificate, DER (output)",
         },
     },
     EMVA: {
