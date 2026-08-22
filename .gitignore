@@ -4,6 +4,7 @@ travis.log
 build
 .vscode
 .idea
+.claude/settings.local.json
 .*.swp
 src/core/config/modules/*
 src/core/config/OperationConfig.json
