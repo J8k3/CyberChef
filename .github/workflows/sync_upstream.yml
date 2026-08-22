@@ -4,6 +4,10 @@ on:
     - cron: '0 6 * * 1'  # weekly, Monday 6am UTC
   workflow_dispatch:
 
+permissions:
+  contents: read   # the push below authenticates with PAT_TOKEN, not GITHUB_TOKEN
+  issues: write    # for the failure report
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -63,6 +67,8 @@ jobs:
 
           if [ -n "$unresolved" ]; then
             echo "::error::Unresolved merge conflicts need manual resolution:$unresolved"
+            # Hand the file list to the failure-report step below.
+            printf '%s\n' $unresolved > "$RUNNER_TEMP/unresolved.txt"
             git merge --abort
             exit 1
           fi
@@ -75,3 +81,48 @@ jobs:
 
           git commit --no-edit
           git push origin master
+
+      # A failed sync used to be visible only in the Actions tab, so the fork
+      # silently drifted behind upstream for weeks at a time. Surface it as an
+      # issue instead, reusing one thread so repeated failures don't spam.
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          LABEL="sync-failure"
+          gh label create "$LABEL" --color B60205 \
+            --description "Automated upstream sync needs manual attention" 2>/dev/null || true
+
+          if [ -f "$RUNNER_TEMP/unresolved.txt" ]; then
+            detail=$(printf 'The merge stopped on conflicts this workflow will not auto-resolve:\n\n```\n%s\n```\n\nResolve locally:\n\n```sh\ngit fetch upstream\ngit merge upstream/master\n# fix the files above, then:\ngit push origin master\n```' "$(cat "$RUNNER_TEMP/unresolved.txt")")
+          else
+            detail='The sync failed before conflict resolution — see the run log. Common causes: an expired `PAT_TOKEN`, or a rejected push.'
+          fi
+
+          body=$(printf 'Automated upstream sync failed.\n\n%s\n\nRun: %s' "$detail" "$RUN_URL")
+
+          existing=$(gh issue list --label "$LABEL" --state open --limit 1 \
+            --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+            echo "Commented on existing issue #$existing"
+          else
+            gh issue create --title "Upstream sync failed" --label "$LABEL" --body "$body"
+          fi
+
+      - name: Clear failure issue on success
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          for n in $(gh issue list --label "sync-failure" --state open \
+                       --json number --jq '.[].number' 2>/dev/null || echo ""); do
+            gh issue close "$n" --comment "Upstream sync succeeded: $RUN_URL"
+            echo "Closed issue #$n"
+          done
