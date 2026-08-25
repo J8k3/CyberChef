@@ -1,0 +1,30 @@
+CyberChef for Payment Cryptography
+Fork of CyberChef (https://github.com/gchq/CyberChef),
+Crown Copyright / GCHQ, licensed under the Apache License, Version 2.0.
+
+Payment-cryptography additions and other fork-specific contributions:
+Copyright 2026 Jacob Marks
+Licensed under the Apache License, Version 2.0.
+
+Additional notices. These are informational; they do not modify the
+License or add conditions to it:
+
+1. Pre-employment work. The fork-specific contributions in this
+   repository were created by Jacob Marks prior to, and independently
+   of, any employment commenced after their creation, on his personal
+   time and personal equipment. They are not the work product of any
+   employer. Upstream code belongs to its authors.
+
+2. Scope of rights. All rights in the fork-specific contributions are
+   licensed solely under the Apache License, Version 2.0. No
+   additional rights, permissions, or licenses are granted by
+   implication, estoppel, acquiescence, or otherwise.
+
+3. No permission by silence. Any use or incorporation of this software
+   by an employer of the author -- in any product, service, or
+   internal system -- is governed exclusively by the License. The
+   author's awareness of, or silence regarding, any such use does not
+   constitute the author permitting, authorizing, or acquiescing to
+   any rights beyond the License, whether by act or by inaction. The
+   author requests, but does not require, written notice of any such
+   use at jacob.marks@gmail.com.
