@@ -158,6 +158,24 @@ function parseHexBuffer(input, name) {
     return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 }
 
+/**
+ * Validates that a numeric argument is an integer within an inclusive range.
+ * Throws instead of clamping so a fractional or out-of-range value is reported
+ * rather than silently producing a differently-sized result.
+ *
+ * @param {number} value
+ * @param {string} name
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+function requireIntegerInRange(value, name, min, max) {
+    if (!Number.isInteger(value) || value < min || value > max) {
+        throw new OperationError(`${name} must be an integer between ${min} and ${max}.`);
+    }
+    return value;
+}
+
 
 export {
     bytesToHex,
@@ -165,6 +183,7 @@ export {
     normalizePin,
     parseHexBuffer,
     parseHexBytes,
+    requireIntegerInRange,
     secureRandomBytes,
     secureRandomInt,
     toByteString,

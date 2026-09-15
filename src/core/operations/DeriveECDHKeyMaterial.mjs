@@ -188,6 +188,9 @@ class DeriveECDHKeyMaterial extends Operation {
                 "name": "Output length (bytes)",
                 "type": "number",
                 "value": 32,
+                "min": 1,
+                "max": 1024,
+                "integer": true,
                 "comment": "Used only with KDF modes. Ignored when KDF is None.",
             },
             {
@@ -236,8 +239,8 @@ class DeriveECDHKeyMaterial extends Operation {
 
         // Bound the KDF output length: it drives the concatKdf digest loop, so an
         // unbounded value (e.g. Infinity via the API) would loop forever and a huge
-        // finite value would exhaust memory. Blank falls back to the 32-byte default.
-        const outLen = (outLenArg === "" || outLenArg === null || outLenArg === undefined) ? 32 : Number(outLenArg);
+        // finite value would exhaust memory.
+        const outLen = outLenArg;
         if (!Number.isInteger(outLen) || outLen < 1 || outLen > 1024)
             throw new OperationError("KDF output length must be an integer between 1 and 1024 bytes.");
 

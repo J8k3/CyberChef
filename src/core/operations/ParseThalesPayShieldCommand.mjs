@@ -275,6 +275,7 @@ class ParseThalesPayShieldCommand extends Operation {
                 value: 0,
                 min: 0,
                 max: 64,
+                integer: true,
                 comment: "Number of characters at the start of the message that should be treated as the transport header (<code>m A</code> in the manual)."
             }
         ];
@@ -292,6 +293,10 @@ class ParseThalesPayShieldCommand extends Operation {
 
         if (!rawInput.length) {
             throw new OperationError("No input.");
+        }
+
+        if (!Number.isInteger(messageHeaderLength) || messageHeaderLength < 0 || messageHeaderLength > 64) {
+            throw new OperationError("Message header length must be an integer between 0 and 64.");
         }
 
         const { message, framing, messageTrailer } = parseTransport(rawInput.replace(/\r?\n/g, ""));

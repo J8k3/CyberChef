@@ -60,6 +60,7 @@ class GenerateEMVARQC extends Operation {
                 value: 8,
                 min: 1,
                 max: 16,
+                integer: true,
                 comment: "Number of leftmost CMAC bytes to return. Common ARQC length is <code>8</code> bytes."
             },
             {

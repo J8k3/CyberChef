@@ -53,7 +53,10 @@ class KeyComponentSplit extends Operation {
             {
                 name: "Number of components",
                 type: "number",
-                value: 3
+                value: 3,
+                min: 2,
+                max: 8,
+                integer: true
             },
             {
                 name: "Output as JSON",
@@ -85,7 +88,7 @@ class KeyComponentSplit extends Operation {
         // 256 bytes is well beyond any payment key.
         if (keyHex.length > 512) throw new OperationError("Input key must be at most 256 bytes.");
 
-        const n = Math.round(numComponents);
+        const n = numComponents;
         if (!Number.isInteger(n) || n < 2 || n > 8) throw new OperationError("Number of components must be an integer between 2 and 8.");
 
         const keyBytes = hexToBytes(keyHex);

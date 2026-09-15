@@ -65,7 +65,10 @@ class CalculatePaymentKCV extends Operation {
                 "name": "Output hex chars",
                 "type": "number",
                 "value": 6,
-                "comment": "Number of uppercase hex characters returned from the left side of the calculated value. Common payment KCV length is <code>6</code>."
+                "min": 1,
+                "max": 128,
+                "integer": true,
+                "comment": "Number of uppercase hex characters returned from the left side of the calculated value. Common payment KCV length is <code>6</code>. Must be a whole number no longer than the calculated value (16 for TDES-ECB, 32 for AES methods, 56 to 128 for HMAC methods)."
             }
         ];
     }
@@ -76,12 +79,15 @@ class CalculatePaymentKCV extends Operation {
      * @returns {string}
      */
     run(input, args) {
-        const [keyFormat, method, outputHexChars] = args;
-        const truncLength = Math.max(1, Number(outputHexChars) || 6);
+        const [keyFormat, method, outputLength] = args;
         const keyBytes = Utils.convertToByteString(input || "", keyFormat);
 
         if (!keyBytes.length) {
             throw new OperationError("No key material was provided.");
+        }
+
+        if (!Number.isInteger(outputLength) || outputLength < 1) {
+            throw new OperationError("Output hex chars must be an integer of 1 or more.");
         }
 
         let hexOut;
@@ -93,6 +99,9 @@ class CalculatePaymentKCV extends Operation {
                 }
                 const key = keyBytes.length === 16 ? keyBytes + keyBytes.substring(0, 8) : keyBytes;
                 const cipher = forge.cipher.createCipher("3DES-ECB", key);
+                cipher.mode.pad = function() {
+                    return true;
+                };
                 cipher.start();
                 cipher.update(forge.util.createBuffer("\x00\x00\x00\x00\x00\x00\x00\x00"));
                 cipher.finish();
@@ -151,7 +160,11 @@ class CalculatePaymentKCV extends Operation {
                 throw new OperationError("Unsupported method.");
         }
 
-        return hexOut.substring(0, truncLength);
+        if (outputLength > hexOut.length) {
+            throw new OperationError(`${method} produces a ${hexOut.length} hex character value, so Output hex chars must be between 1 and ${hexOut.length}.`);
+        }
+
+        return hexOut.substring(0, outputLength);
     }
 
 }

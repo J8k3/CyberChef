@@ -89,6 +89,7 @@ class GenerateCardValidationData extends Operation {
                 value: 3,
                 min: 1,
                 max: 5,
+                integer: true,
                 comment: "How many digits of validation data to return. Common card-security-code lengths are <code>3</code> and sometimes <code>4</code>."
             },
             {

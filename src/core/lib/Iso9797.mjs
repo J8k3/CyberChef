@@ -5,7 +5,7 @@
 
 import forge from "node-forge";
 import OperationError from "../errors/OperationError.mjs";
-import { bytesToHex, parseHexBytes, toByteString, xorBytes } from "./PaymentUtils.mjs";
+import { bytesToHex, parseHexBytes, requireIntegerInRange, toByteString, xorBytes } from "./PaymentUtils.mjs";
 
 const ISO9797_PADDING_METHODS = ["Method 1", "Method 2"];
 
@@ -154,7 +154,7 @@ function generateIso9797Algorithm1Mac(inputHex, keyHex, paddingMethod, outputByt
     const padded = applyIso9797Padding(data, 8, paddingMethod);
     const fullMacBytes = runTdesCbcMac(key, padded);
     const fullMacHex = bytesToHex(fullMacBytes);
-    const macHex = fullMacHex.substring(0, Math.max(1, Math.min(8, Number(outputBytes) || 8)) * 2);
+    const macHex = fullMacHex.substring(0, requireIntegerInRange(outputBytes, "Output bytes", 1, 8) * 2);
 
     return {
         algorithm: "ISO 9797-1 Algorithm 1",
@@ -184,7 +184,7 @@ function generateIso9797Algorithm3Mac(inputHex, keyHex, paddingMethod, outputByt
     const cbcState = runDesCbcMac(key1, padded);
     const fullMacBytes = encryptDesBlock(key3, decryptDesBlock(key2, cbcState));
     const fullMacHex = bytesToHex(fullMacBytes);
-    const macHex = fullMacHex.substring(0, Math.max(1, Math.min(8, Number(outputBytes) || 8)) * 2);
+    const macHex = fullMacHex.substring(0, requireIntegerInRange(outputBytes, "Output bytes", 1, 8) * 2);
 
     return {
         algorithm: "ISO 9797-1 Algorithm 3",

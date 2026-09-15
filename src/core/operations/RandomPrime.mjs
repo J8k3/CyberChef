@@ -96,7 +96,9 @@ class GeneratePrime extends Operation {
                 name: "Bit length",
                 type: "number",
                 value: 512,
-                min: 2
+                min: 2,
+                max: 4096,
+                integer: true
             },
             {
                 name: "Crypto grade",
@@ -118,6 +120,10 @@ class GeneratePrime extends Operation {
      */
     run(input, args) {
         const [bits, cryptoGrade, outputFormat] = args;
+
+        if (!Number.isInteger(bits)) {
+            throw new OperationError("Bit length must be an integer");
+        }
 
         if (bits < 2) {
             throw new OperationError("Bit length must be at least 2");

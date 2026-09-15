@@ -43,7 +43,7 @@ class VerifyEMVARQC extends Operation {
         this.outputType = "string";
         this.args = [
             { name: "Session key (hex)", type: "string", value: "", comment: "Provide the already-derived EMV session key as hex. This wrapper does not derive EMV session keys." },
-            { name: "Cryptogram bytes", type: "number", value: 8, min: 1, max: 16, comment: "Number of leftmost CMAC bytes to compare." },
+            { name: "Cryptogram bytes", type: "number", value: 8, min: 1, max: 16, integer: true, comment: "Number of leftmost CMAC bytes to compare." },
             { name: "Preimage data (hex)", type: "string", value: "", comment: "Preassembled ARQC input data as hex — the same data used by EMV Generate ARQC to produce the ARQC." },
             { name: "Output as JSON", type: "boolean", value: true, comment: "When enabled, returns the recomputed ARQC and validity result." },
         ];

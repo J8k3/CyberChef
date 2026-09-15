@@ -730,7 +730,7 @@ TestRegister.addTests([
         // rejected rather than silently producing an empty key.
         name: "Key Generate: rejects non-integer custom length",
         input: "",
-        expectedOutput: "Custom length must be an integer between 1 and 256 bytes.",
+        expectedOutput: "Custom length (bytes) must be an integer.",
         recipeConfig: [
             {
                 op: "Key Generate",
@@ -2530,6 +2530,368 @@ TestRegister.addTests([
                 args: [false]
             }
         ]
+    },
+    {
+        name: "Payment Calculate KCV: output length 32 returns full AES-CMAC value",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "91773796CF510124D3593A331B9D7C51",
+        recipeConfig: [
+            {
+                op: "Payment Calculate KCV",
+                args: ["Hex", "AES-CMAC (Empty)", 32]
+            }
+        ]
+    },
+    {
+        name: "Payment Calculate KCV: output length 16 returns full TDES-ECB value",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "FB09759972301AF4",
+        recipeConfig: [
+            {
+                op: "Payment Calculate KCV",
+                args: ["Hex", "TDES-ECB (Zeros)", 16]
+            }
+        ]
+    },
+    {
+        name: "Payment Calculate KCV: output length 0 rejected",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "Output hex chars must be greater than or equal to 1.",
+        recipeConfig: [
+            {
+                op: "Payment Calculate KCV",
+                args: ["Hex", "AES-CMAC (Empty)", 0]
+            }
+        ]
+    },
+    {
+        name: "Payment Calculate KCV: fractional output length rejected",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "Output hex chars must be an integer.",
+        recipeConfig: [
+            {
+                op: "Payment Calculate KCV",
+                args: ["Hex", "AES-CMAC (Empty)", 2.5]
+            }
+        ]
+    },
+    {
+        name: "Payment Calculate KCV: output length beyond TDES-ECB value rejected",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "TDES-ECB (Zeros) produces a 16 hex character value, so Output hex chars must be between 1 and 16.",
+        recipeConfig: [
+            {
+                op: "Payment Calculate KCV",
+                args: ["Hex", "TDES-ECB (Zeros)", 17]
+            }
+        ]
+    },
+    {
+        name: "Payment Calculate KCV: output length beyond AES-ECB value rejected",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "AES-ECB (Zeros) produces a 32 hex character value, so Output hex chars must be between 1 and 32.",
+        recipeConfig: [
+            {
+                op: "Payment Calculate KCV",
+                args: ["Hex", "AES-ECB (Zeros)", 33]
+            }
+        ]
+    },
+    {
+        name: "Payment Calculate KCV: output length beyond declared maximum rejected",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "Output hex chars must be less than or equal to 128.",
+        recipeConfig: [
+            {
+                op: "Payment Calculate KCV",
+                args: ["Hex", "HMAC SHA-512", 129]
+            }
+        ]
+    },
+    {
+        name: "EMV Generate ARQC: 16 cryptogram bytes returns full CMAC",
+        input: "000102030405060708090A0B0C0D0E0F",
+        expectedOutput: "C1F732B52FB20CAAB58D5B6C78CBD514",
+        recipeConfig: [
+            {
+                op: "EMV Generate ARQC",
+                args: ["00112233445566778899AABBCCDDEEFF", 16, false]
+            }
+        ]
+    },
+    {
+        name: "EMV Generate ARQC: fractional cryptogram bytes rejected",
+        input: "000102030405060708090A0B0C0D0E0F",
+        expectedOutput: "Cryptogram bytes must be an integer.",
+        recipeConfig: [
+            {
+                op: "EMV Generate ARQC",
+                args: ["00112233445566778899AABBCCDDEEFF", 2.5, false]
+            }
+        ]
+    },
+    {
+        name: "EMV Generate ARQC: cryptogram bytes beyond CMAC length rejected",
+        input: "000102030405060708090A0B0C0D0E0F",
+        expectedOutput: "Cryptogram bytes must be less than or equal to 16.",
+        recipeConfig: [
+            {
+                op: "EMV Generate ARQC",
+                args: ["00112233445566778899AABBCCDDEEFF", 17, false]
+            }
+        ]
+    },
+    {
+        name: "EMV Verify ARQC: fractional cryptogram bytes rejected",
+        input: "C1F732B52FB20CAA",
+        expectedOutput: "Cryptogram bytes must be an integer.",
+        recipeConfig: [
+            {
+                op: "EMV Verify ARQC",
+                args: ["00112233445566778899AABBCCDDEEFF", 7.5, "000102030405060708090A0B0C0D0E0F", true]
+            }
+        ]
+    },
+    {
+        name: "EMV Generate MAC: fractional output bytes rejected",
+        input: "",
+        expectedOutput: "Output bytes must be an integer.",
+        recipeConfig: [
+            {
+                op: "EMV Generate MAC",
+                args: ["0123456789ABCDEFFEDCBA9876543210", "Method 2", 4.5, false]
+            }
+        ]
+    },
+    {
+        name: "EMV Generate MAC: output bytes beyond MAC length rejected",
+        input: "",
+        expectedOutput: "Output bytes must be less than or equal to 8.",
+        recipeConfig: [
+            {
+                op: "EMV Generate MAC",
+                args: ["0123456789ABCDEFFEDCBA9876543210", "Method 2", 9, false]
+            }
+        ]
+    },
+    {
+        name: "EMV Generate MAC (PIN Change): output bytes 0 rejected",
+        input: "00A4040008A000000004101080D80500000001010A04000000000000",
+        expectedOutput: "Output bytes must be greater than or equal to 1.",
+        recipeConfig: [
+            {
+                op: "EMV Generate MAC (PIN Change)",
+                args: ["67FB27C75580EFE7", "0123456789ABCDEFFEDCBA9876543210", 0, false]
+            }
+        ]
+    },
+    {
+        name: "MAC Generate: HMAC SHA-256 with 32 output bytes returns full MAC",
+        input: "1122334455667788",
+        expectedOutput: "9300E1D36DD3041505809FE1D0EC26F09C0A9501E86A80FD47D69C41D74F1A09",
+        recipeConfig: [
+            {
+                op: "MAC Generate",
+                args: ["Hex", "HMAC SHA-256", "00112233445566778899AABBCCDDEEFF", "Hex", "", "Method 1", 32, false]
+            }
+        ]
+    },
+    {
+        name: "MAC Generate: output bytes beyond ISO 9797-1 Algorithm 1 MAC length rejected",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "ISO 9797-1 Algorithm 1 produces a 8-byte MAC, so the output length must be between 1 and 8 bytes.",
+        recipeConfig: [
+            {
+                op: "MAC Generate",
+                args: ["Hex", "ISO 9797-1 Algorithm 1", "0123456789ABCDEFFEDCBA9876543210", "Hex", "", "Method 1", 9, false]
+            }
+        ]
+    },
+    {
+        name: "MAC Generate: output bytes beyond AES-CMAC length rejected",
+        input: "1122334455667788",
+        expectedOutput: "AES-CMAC produces a 16-byte MAC, so the output length must be between 1 and 16 bytes.",
+        recipeConfig: [
+            {
+                op: "MAC Generate",
+                args: ["Hex", "AES-CMAC", "00112233445566778899AABBCCDDEEFF", "Hex", "", "Method 1", 17, false]
+            }
+        ]
+    },
+    {
+        name: "MAC Generate: fractional output bytes rejected",
+        input: "1122334455667788",
+        expectedOutput: "Output bytes must be an integer.",
+        recipeConfig: [
+            {
+                op: "MAC Generate",
+                args: ["Hex", "AES-CMAC", "00112233445566778899AABBCCDDEEFF", "Hex", "", "Method 1", 2.5, false]
+            }
+        ]
+    },
+    {
+        name: "MAC Generate: output bytes beyond declared maximum rejected",
+        input: "1122334455667788",
+        expectedOutput: "Output bytes must be less than or equal to 64.",
+        recipeConfig: [
+            {
+                op: "MAC Generate",
+                args: ["Hex", "HMAC SHA-512", "00112233445566778899AABBCCDDEEFF", "Hex", "", "Method 1", 65, false]
+            }
+        ]
+    },
+    {
+        name: "Card Validation Data Generate: fractional output digits rejected",
+        input: "0123456789ABCDEFFEDCBA9876543210",
+        expectedOutput: "Output digits must be an integer.",
+        recipeConfig: [
+            {
+                op: "Card Validation Data Generate",
+                args: ["CVV2 / CVC2 (force 000)", "4123456789012345", "02", "25", "MMYY", "101", 2.5, false]
+            }
+        ]
+    },
+    {
+        name: "Card Validation Data Generate: output digits 0 rejected",
+        input: "0123456789ABCDEFFEDCBA9876543210",
+        expectedOutput: "Output digits must be greater than or equal to 1.",
+        recipeConfig: [
+            {
+                op: "Card Validation Data Generate",
+                args: ["CVV2 / CVC2 (force 000)", "4123456789012345", "02", "25", "MMYY", "101", 0, false]
+            }
+        ]
+    },
+    {
+        name: "Card Validation Data Generate: output digits beyond 5 rejected",
+        input: "0123456789ABCDEFFEDCBA9876543210",
+        expectedOutput: "Output digits must be less than or equal to 5.",
+        recipeConfig: [
+            {
+                op: "Card Validation Data Generate",
+                args: ["CVV2 / CVC2 (force 000)", "4123456789012345", "02", "25", "MMYY", "101", 6, false]
+            }
+        ]
+    },
+    {
+        name: "PAN Generate: unsupported length for network rejected instead of substituted",
+        input: "",
+        expectedOutput: "Visa test PANs support lengths 13, 16, 19.",
+        recipeConfig: [
+            {
+                op: "PAN Generate",
+                args: ["Visa", "Generated valid PAN", 15, "Any", false]
+            }
+        ]
+    },
+    {
+        name: "PAN Generate: target length below 13 rejected",
+        input: "",
+        expectedOutput: "Target length must be greater than or equal to 13.",
+        recipeConfig: [
+            {
+                op: "PAN Generate",
+                args: ["Visa", "Generated valid PAN", 12, "Any", false]
+            }
+        ]
+    },
+    {
+        name: "PAN Generate: fractional target length rejected",
+        input: "",
+        expectedOutput: "Target length must be an integer.",
+        recipeConfig: [
+            {
+                op: "PAN Generate",
+                args: ["Visa", "Generated valid PAN", 16.5, "Any", false]
+            }
+        ]
+    },
+    {
+        name: "Key Component Split: fractional component count rejected instead of rounded",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "Number of components must be an integer.",
+        recipeConfig: [
+            {
+                op: "Key Component Split",
+                args: [2.4, false]
+            }
+        ]
+    },
+    {
+        name: "Key Component Split: component count below 2 rejected",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "Number of components must be greater than or equal to 2.",
+        recipeConfig: [
+            {
+                op: "Key Component Split",
+                args: [1, false]
+            }
+        ]
+    },
+    {
+        name: "Key Component Split: component count above 8 rejected",
+        input: "00112233445566778899AABBCCDDEEFF",
+        expectedOutput: "Number of components must be less than or equal to 8.",
+        recipeConfig: [
+            {
+                op: "Key Component Split",
+                args: [9, false]
+            }
+        ]
+    },
+    {
+        name: "Pseudo-Random Prime Generator: fractional bit length rejected",
+        input: "",
+        expectedOutput: "Bit length must be an integer.",
+        recipeConfig: [
+            {
+                op: "Pseudo-Random Prime Generator",
+                args: [8.5, false, "Decimal"]
+            }
+        ]
+    },
+    {
+        name: "Pseudo-Random Prime Generator: bit length above 4096 rejected",
+        input: "",
+        expectedOutput: "Bit length must be less than or equal to 4096.",
+        recipeConfig: [
+            {
+                op: "Pseudo-Random Prime Generator",
+                args: [5000, false, "Decimal"]
+            }
+        ]
+    },
+    {
+        name: "HSM Parse Thales Command: fractional header length rejected",
+        input: "HEADHE0123456789ABCDEF0011223344556677",
+        expectedOutput: "Message header length must be an integer.",
+        recipeConfig: [
+            {
+                op: "HSM Parse Thales Command",
+                args: [2.5]
+            }
+        ]
+    },
+    {
+        name: "PIN Generate: fractional PIN length rejected",
+        input: "",
+        expectedOutput: "PIN length must be an integer.",
+        recipeConfig: [
+            {
+                op: "PIN Generate",
+                args: [4.5, "PIN digits", ""]
+            }
+        ]
+    },
+    {
+        name: "VISA PVV Generate: fractional PVKI rejected",
+        input: "1234",
+        expectedOutput: "PVKI must be an integer.",
+        recipeConfig: [
+            {
+                op: "VISA PVV Generate",
+                args: ["0123456789ABCDEFFEDCBA9876543210", "4123456789012345", 1.5, false]
+            }
+        ]
     }
 ]);
-

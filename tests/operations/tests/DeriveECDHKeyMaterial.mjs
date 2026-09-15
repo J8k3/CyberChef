@@ -63,4 +63,37 @@ TestRegister.addTests([
             }
         ]
     },
+    {
+        name: "Derive ECDH Key Material: KDF output length 0 rejected",
+        input: ALICE_PRIV_P256,
+        expectedOutput: "Output length (bytes) must be greater than or equal to 1.",
+        recipeConfig: [
+            {
+                "op": "Derive ECDH Key Material",
+                "args": ["PEM", "P-256", "PEM", BOB_PUB_P256, "Concat KDF SHA-256", 0, "", "Hex"]
+            }
+        ]
+    },
+    {
+        name: "Derive ECDH Key Material: fractional KDF output length rejected",
+        input: ALICE_PRIV_P256,
+        expectedOutput: "Output length (bytes) must be an integer.",
+        recipeConfig: [
+            {
+                "op": "Derive ECDH Key Material",
+                "args": ["PEM", "P-256", "PEM", BOB_PUB_P256, "Concat KDF SHA-256", 16.5, "", "Hex"]
+            }
+        ]
+    },
+    {
+        name: "Derive ECDH Key Material: KDF output length above 1024 rejected",
+        input: ALICE_PRIV_P256,
+        expectedOutput: "Output length (bytes) must be less than or equal to 1024.",
+        recipeConfig: [
+            {
+                "op": "Derive ECDH Key Material",
+                "args": ["PEM", "P-256", "PEM", BOB_PUB_P256, "Concat KDF SHA-256", 1025, "", "Hex"]
+            }
+        ]
+    },
 ]);

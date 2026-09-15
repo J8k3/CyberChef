@@ -4,7 +4,7 @@
  */
 
 import OperationError from "../errors/OperationError.mjs";
-import { bytesToHex, parseHexBytes, xorBytes } from "./PaymentUtils.mjs";
+import { bytesToHex, parseHexBytes, requireIntegerInRange, xorBytes } from "./PaymentUtils.mjs";
 import { encryptDesEcb, encryptTdesEcb } from "./CardValidationInternals.mjs";
 
 const CVV_PROFILES = [
@@ -120,7 +120,7 @@ function generateCardValidationData(cvkHex, pan, expiryMonth, expiryYear, expiry
 
     validateCardData(normalizedPan, normalizedMonth, normalizedYear, resolvedServiceCode);
 
-    const normalizedDigitCount = Math.max(1, Math.min(5, Number(digitCount) || 3));
+    const normalizedDigitCount = requireIntegerInRange(digitCount, "Output digits", 1, 5);
     const cvk = parseHexBytes(cvkHex, "CVK pair", [16, 24]);
     const keyA = cvk.slice(0, 8);
     const expiry = expiryLayout === "MMYY" ?

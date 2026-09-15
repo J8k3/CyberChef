@@ -5,7 +5,7 @@
 
 import CMAC from "../operations/CMAC.mjs";
 import OperationError from "../errors/OperationError.mjs";
-import { parseHexBuffer } from "./PaymentUtils.mjs";
+import { parseHexBuffer, requireIntegerInRange } from "./PaymentUtils.mjs";
 
 /**
  * Generates an EMV AES-CMAC cryptogram and truncates it.
@@ -22,7 +22,7 @@ function generateEmvAesCmacCryptogram(inputHex, keyHex, outputBytes) {
         throw new OperationError("Session key must be hex.");
     }
 
-    const normalizedOutputBytes = Math.max(1, Math.min(16, Number(outputBytes) || 8));
+    const normalizedOutputBytes = requireIntegerInRange(outputBytes, "Cryptogram bytes", 1, 16);
     const cmac = new CMAC();
     const fullMacHex = cmac.run(inputBuffer, [{ string: normalizedKey, option: "Hex" }, "AES"]).toUpperCase();
     const cryptogramHex = fullMacHex.substring(0, normalizedOutputBytes * 2);

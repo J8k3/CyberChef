@@ -33,7 +33,7 @@ class GenerateEMVMACForPINChange extends Operation {
         this.args = [
             { name: "New encrypted PIN block (hex)", type: "string", value: "", comment: "Provide the already-encrypted new PIN block that will be appended to the issuer-script message." },
             { name: "Session integrity key (hex)", type: "string", value: "", comment: "Provide the already-derived EMV session integrity key in hex. This operation does not derive EMV keys or encrypt the PIN block for you." },
-            { name: "Output bytes", type: "number", value: 8, min: 1, max: 8, comment: "Number of leftmost MAC bytes to return. EMV issuer scripts commonly use 8 bytes." },
+            { name: "Output bytes", type: "number", value: 8, min: 1, max: 8, integer: true, comment: "Number of leftmost MAC bytes to return. EMV issuer scripts commonly use 8 bytes." },
             { name: "Output as JSON", type: "boolean", value: false, comment: "When enabled, returns the composed issuer-script message and the computed MAC." },
         ];
     }

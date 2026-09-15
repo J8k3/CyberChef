@@ -40,7 +40,7 @@ class GenerateVISAPVV extends Operation {
         this.args = [
             { name: "PIN verification key (hex)", type: "string", value: "", comment: "Provide the clear VISA PVK as 16-byte or 24-byte hex." },
             { name: "Primary account number", type: "string", value: "", comment: "Provide the PAN as digits only. The standard PVV input uses the rightmost 11 digits before the check digit." },
-            { name: "PVKI", type: "number", value: 1, min: 0, max: 6, comment: "PIN verification key index from 0 through 6." },
+            { name: "PVKI", type: "number", value: 1, min: 0, max: 6, integer: true, comment: "PIN verification key index from 0 through 6." },
             { name: "Output as JSON", type: "boolean", value: true, comment: "When enabled, returns the assembled PVV input and intermediate encrypted block." },
         ];
     }

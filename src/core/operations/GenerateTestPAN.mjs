@@ -49,6 +49,7 @@ class GenerateTestPAN extends Operation {
                 value: 16,
                 min: 13,
                 max: 19,
+                integer: true,
                 comment: "Used only in generated mode. Networks that do not support the requested length fall back to their first supported length."
             },
             {

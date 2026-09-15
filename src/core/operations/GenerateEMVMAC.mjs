@@ -45,7 +45,7 @@ class GenerateEMVMAC extends Operation {
         this.args = [
             { name: "Session integrity key (hex)", type: "string", value: "", comment: "Provide the already-derived EMV integrity session key in hex. This op does not derive EMV keys for you." },
             { name: "Padding method", type: "option", value: ["Method 2", "Method 1"], comment: "Method 2 appends 0x80 then zero-pads to block boundary (ISO 7816-4; standard for EMV issuer scripts). Method 1 zero-pads to block boundary only." },
-            { name: "Output bytes", type: "number", value: 8, min: 1, max: 8, comment: "Number of leftmost MAC bytes to return. EMV issuer scripts commonly use 8 bytes." },
+            { name: "Output bytes", type: "number", value: 8, min: 1, max: 8, integer: true, comment: "Number of leftmost MAC bytes to return. EMV issuer scripts commonly use 8 bytes." },
             { name: "Output as JSON", type: "boolean", value: false, comment: "When enabled, returns the issuer-script input and full retail-MAC details." },
         ];
     }

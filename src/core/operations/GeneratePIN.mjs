@@ -58,6 +58,7 @@ class GeneratePIN extends Operation {
                 value: 4,
                 min: 4,
                 max: 12,
+                integer: true,
                 comment: "Number of PIN digits to generate. Most cardholder PINs are 4 digits."
             },
             {

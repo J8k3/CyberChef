@@ -4,7 +4,7 @@
  */
 
 import OperationError from "../errors/OperationError.mjs";
-import { normalizePan, secureRandomInt } from "./PaymentUtils.mjs";
+import { normalizePan, requireIntegerInRange, secureRandomInt } from "./PaymentUtils.mjs";
 
 const PAN_BRANDS = ["Visa", "Mastercard", "American Express", "Discover"];
 const MASTERCARD_SERIES = ["Any", "5-series (51-55)", "2-series (2221-2720)"];
@@ -263,7 +263,10 @@ function generateBrandPan(brand, requestedLength, mastercardSeries = "Any") {
     }
     const config = PAN_BRAND_RULES[brand];
 
-    const length = config.lengths.includes(requestedLength) ? requestedLength : config.lengths[0];
+    if (!config.lengths.includes(requestedLength)) {
+        throw new OperationError(`${brand} test PANs support lengths ${config.lengths.join(", ")}.`);
+    }
+    const length = requestedLength;
     const eligibleRules = config.prefixes.filter(r => r.lengths.includes(length));
 
     let selectedRule;
@@ -316,7 +319,7 @@ function generateTestPan(brand, mode, length, mastercardSeries = "Any") {
         };
     }
 
-    const generated = generateBrandPan(brand, Number(length) || config.lengths[0], mastercardSeries);
+    const generated = generateBrandPan(brand, requireIntegerInRange(length, "Target length", 13, 19), mastercardSeries);
     const parsed = parsePan(generated.pan);
     return {
         brand,

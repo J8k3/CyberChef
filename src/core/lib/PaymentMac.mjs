@@ -14,6 +14,7 @@ import {
     generateIso9797Algorithm1Mac,
     generateIso9797Algorithm3Mac,
 } from "./Iso9797.mjs";
+import { requireIntegerInRange } from "./PaymentUtils.mjs";
 
 const PAYMENT_MAC_METHODS = [
     "HMAC SHA-224",
@@ -117,7 +118,7 @@ function byteStringToHex(byteString) {
  * @returns {Object}
  */
 function generatePaymentMac(input, inputFormat, method, keyValue, keyFormat, ksn, outputBytes, paddingMethod="Method 1") {
-    const normalizedOutputBytes = Math.max(1, Number(outputBytes) || 8);
+    const normalizedOutputBytes = requireIntegerInRange(outputBytes, "Output bytes", 1, 64);
     const inputBuffer = convertInputToBuffer(input, inputFormat);
     const inputHex = byteStringToHex(Utils.arrayBufferToStr(inputBuffer, false));
     const { keyHex, keyContext } = resolveMacKey(method, { keyValue, keyFormat, ksn });
@@ -146,6 +147,10 @@ function generatePaymentMac(input, inputFormat, method, keyValue, keyFormat, ksn
         throw new OperationError("Unsupported payment MAC method.");
     }
 
+    const fullMacBytes = fullMacHex.length / 2;
+    if (normalizedOutputBytes > fullMacBytes) {
+        throw new OperationError(`${method} produces a ${fullMacBytes}-byte MAC, so the output length must be between 1 and ${fullMacBytes} bytes.`);
+    }
     const macHex = fullMacHex.substring(0, normalizedOutputBytes * 2);
 
     return {

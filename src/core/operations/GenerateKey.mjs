@@ -139,6 +139,7 @@ class GenerateKey extends Operation {
                 value: 16,
                 min: 1,
                 max: 256,
+                integer: true
             },
             {
                 name: "Compute AES CMAC KCV",

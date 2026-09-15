@@ -100,6 +100,7 @@ class GeneratePaymentMAC extends Operation {
                 value: 8,
                 min: 1,
                 max: 64,
+                integer: true,
                 comment: "Number of leftmost MAC bytes to return. Leave at <code>8</code> for common payment truncation lengths."
             },
             {
